@@ -14,8 +14,6 @@ export class UserModel{
 
             const mysqlDate = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
-            console.log('Is admin: ', is_admin);
-
             const [result] = await connection.execute(
                 `INSERT INTO usuarios (email, nombre, password, telefono, codigo_postal, localidad, provincia, created_at, is_admin) 
                 values (?,?,?,?,?,?,?,?,?)`,[email, nombre, password, telefono, codigo_postal, localidad, provincia, mysqlDate, is_admin]
@@ -38,16 +36,23 @@ export class UserModel{
 
     async findByColumns(columns, fieldToCompare, data){
 
-        const fields = columns.join(', ');
-
-        const [row] = await pool.execute(
-            `SELECT ${fields} FROM usuarios WHERE ${fieldToCompare} = ?`,[data]
-        );
-
-        if (row.length === 0){
-            return undefined;
+        try {
+            const fields = columns.join(', ');
+    
+            const [row] = await pool.execute(
+                `SELECT ${fields} FROM usuarios WHERE ${fieldToCompare} = ?`,[data]
+            );
+    
+            if (row.length === 0){
+                return undefined;
+            }
+            return row[0];
+        } catch (error) {
+            if (error.code === 'ECONNREFUSED'){
+                throw new AppError('Internal Server Error', 'Error al conectarse con el servidor', 503)
+            }
+            throw new AppError('Internal Server error', 'Error interno del servidor', 500);
         }
-        return row[0];
     }
 
 

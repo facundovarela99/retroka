@@ -39,9 +39,7 @@ const userSchema = zod.object({
 }).passthrough()
 
 export function validarNuevoUsuario(object){
-    console.log('object.is_admin: ', typeof object.is_admin, object.is_admin);
     (object.is_admin === '1') ? object.is_admin = true :object.is_admin = false;
-    console.log(object.is_admin)
 
     const result = userSchema.safeParse(object);
 

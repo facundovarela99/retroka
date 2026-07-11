@@ -36,7 +36,6 @@ export class AuthController{
             });
 
         } catch (error) {
-            console.log(error)
             return res.status(error.statusCode || 500).json({
                 data: null,
                 error: error.error || 'Internal Server Error',

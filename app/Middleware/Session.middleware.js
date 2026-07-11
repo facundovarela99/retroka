@@ -2,7 +2,7 @@ import session from "express-session";
 import MySQLStoreFactory from "express-mysql-session";
 import { pool } from "../Config/Database.js";
 
-const SESSION_MAX_AGE = 1000 * 120;
+const SESSION_MAX_AGE = 1000 * 60 * 60;
 export const SESSION_COOKIE_NAME = `${process.env.APP_NAME || 'retroka'}.sid`;
 const MySQLStore = MySQLStoreFactory(session);
 let sessionStore;
@@ -57,6 +57,20 @@ export const requireAuth = (req, res, next) => {
         data: null,
         error: 'Unauthorized',
         message: 'Debes iniciar sesion para acceder a esta ruta',
+        status: 401
+    });
+}
+
+export const isAdmin = (req, res, next) => {
+    if (req.session?.user && req.session.user.is_admin) {
+        req.user = req.session.user;
+        return next();
+    }
+
+    return res.status(401).json({
+        data: null,
+        error: 'Unauthorized',
+        message: 'No tenés permisos para realizar esta acción',
         status: 401
     });
 }
