@@ -53,7 +53,7 @@ class CategoryController{
             }
 
             const categoria = validarCategoria(req.body).nombre;
-            console.log('Cateogoria update: ', categoria);
+            
             await this.#categoryModel.update(id, categoria);
 
             res.status(200).json({

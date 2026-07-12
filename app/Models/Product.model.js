@@ -10,8 +10,6 @@ export class ProductModel{
             `SELECT * FROM ${this.#table};`
         );
 
-        if (rows.length === 0) throw new AppError('Not Found', 'No existen productos', 404);
-
         return rows;
     }
 

@@ -1,0 +1,51 @@
+
+<% 
+
+const productos_sin_categoria = []; 
+
+productos.forEach((producto)=>{
+    if (producto.categoria === null){
+        productos_sin_categoria.push(producto);
+    }
+})
+
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../partials/meta') %>
+<body>
+    <%- include('../partials/navbar') %>
+    <% if (productos.length > 0 && productos.length > productos_sin_categoria.length || user.is_admin) { %>
+        <section id="productos">
+            <ul>
+               <% productos.forEach(function(producto) { %>
+                    <% if (producto.categoria) { %>
+                        <li class="producto">
+                            <div>
+                                <p><%= producto.nombre %></p>
+                                <p><%= producto.descripcion %></p>
+                                <p><%= producto.precio %></p>
+                                <p><%= producto.stock %></p>
+                                <% if (producto.categoria){ %>
+                                    <p><%= producto.categoria %></p>
+                                <% } else { %>
+                                    <p>Sin categoría</p>
+                                <% } %>
+                                <% if (user && user.is_admin === true){ %>
+                                    <a href="<%= url('/producto/'+producto.id) %>">Editar</a>
+                                <% } else { %>
+                                    <a href="<%= url('/producto/'+producto.id) %>">Ver</a>
+                                <% } %>
+                                <button type="button" class="btn-agregar-al-carrito" data-producto='<%- JSON.stringify(producto) %>'>Agregar al carro</button>
+                            </div>
+                        </li>
+                    <% } %>
+               <% }) %>
+            </ul>
+        </section>
+    <% } else { %>
+        <h1>No existen productos</h1>
+    <% } %>
+<%- include('../partials/sidebar') %>
+</body>
+</html>

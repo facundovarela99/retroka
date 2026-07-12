@@ -2,6 +2,7 @@ import { AppError } from "../Models/Error.model.js";
 import { UserModel } from "../Models/User.model.js";
 import { comparePwd, encrypt, setAuthenticatedSession, validarNuevoUsuario } from "../Services/Auth.service.js";
 import { SESSION_COOKIE_NAME } from "../Middleware/Session.middleware.js";
+import {url} from '../Config/Env.js'
 
 export class AuthController{
     #userModel
@@ -43,6 +44,17 @@ export class AuthController{
                 status: error.statusCode || 500
             })
         }
+    }
+
+    async showLogin(req, res){
+        if (req.session.user){
+            return res.redirect('productos');
+        }
+
+        res.status(200).render('login', {
+            title:'Login',
+            url,
+        });
     }
 
     async login(req, res) {
@@ -101,10 +113,7 @@ export class AuthController{
                 path: '/'
             });
 
-            return res.status(200).json({
-                data: true,
-                message: 'Logout exitoso'
-            });
+            return res.redirect('productos');
         } catch (error) {
             return res.status(500).json({
                 data: null,

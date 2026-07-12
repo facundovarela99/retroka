@@ -2,6 +2,7 @@ import { CategoryModel } from "../Models/Category.model.js";
 import { ProductModel } from "../Models/Product.model.js"
 import { validarNuevoProducto, validarProductoActualizacion } from "../Services/Product.service.js";
 import { AppError } from "../Models/Error.model.js";
+import { base_path, url } from "../Config/Env.js";
 
 
 
@@ -17,10 +18,37 @@ export class ProductController{
 
     async getAll(req, res){
         try {
+            const user = req.session.user;
+            console.log('Usuario: ', user);
             const productos = await this.#productModel.getAll();
-            res.status(200).json({
-                data:productos,
+            res.status(200).render('productos',{
+                user:user,
+                title: 'Productos',
+                productos:productos,
+                url:url,
             })
+        } catch (error) {
+            res.status(error.statusCode).json({
+                data:null,
+                error:error.error,
+                message:error.message,
+            });
+        }
+    }
+
+    async getByID(req, res){
+        const id = req.params.id;
+        
+        try {
+            if (!id) throw new AppError('Not Found', 'Producto inexistente', 404);
+        
+            const producto = await this.#productModel.findByID(id);
+
+            res.status(200).render('producto', {
+                title:producto.nombre,
+                producto:producto,
+            })
+
         } catch (error) {
             res.status(error.statusCode).json({
                 data:null,
@@ -50,7 +78,6 @@ export class ProductController{
                 message:'Producto creado exitosamente'
             })
         } catch(error){
-            console.log('Errlr al crear producto: ', error);
             res.status(error.statusCode).json({
                 data:null,
                 error:error.error,
@@ -95,7 +122,6 @@ export class ProductController{
                 message:'Producto actualizado con éxito'
             })
         } catch (error) {
-            console.log('error: ', error)
             res.status(500).json({
                 message: error.message
             })

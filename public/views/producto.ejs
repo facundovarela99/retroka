@@ -1,0 +1,27 @@
+<%- include('../partials/meta') %>
+
+<body>
+    <h1>
+        <%= producto.nombre %>
+    </h1>
+    <h2>
+        <%= producto.descripcion %>
+    </h2>
+    <h2>
+        <%= producto.precio %>
+    </h2>
+    <h2>
+        <%= producto.stock %>
+    </h2>
+    <h2>
+        <%= producto.categoria %>
+    </h2>
+    <% if (producto.categoria){ %>
+        <h2>
+            <%= producto.categoria %>
+        </h2>
+    <% } else { %>
+        <h2>Sin categoría</h2>
+    <% } %>
+<%- include('../partials/sidebar') %>
+</body>

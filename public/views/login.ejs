@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../partials/meta') %>
+<body id="body-login">
+    <main id="main-login">
+        <section id="login-section" aria-labelledby="login-title">
+            <header id="header-login">
+                <h1 id="login-title">Iniciar sesión</h1>
+                <p>Accedé al panel de administración de Retroka.</p>
+            </header>
+            <form id="form-login" action="/retroka/login" method="post" data-url="<%= url('/login') %>">
+                <fieldset>
+                    <legend>Credenciales de acceso</legend>
+                    <label for="email">
+                        Correo electrónico
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            autocomplete="email"
+                            required
+                        >
+                    </label>
+                    <label for="password">
+                        Contraseña
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            autocomplete="current-password"
+                            required
+                        >
+                    </label>
+                </fieldset>
+                <button type="submit">Ingresar</button>
+            </form>
+            <footer id="footer-login">
+                <p>Uso exclusivo para usuarios autorizados.</p>
+                <p id="mensaje-error">Mensaje de error</p>
+            </footer>
+        <section>
+    </main>
+<script src="/assets/js/login.js"></script>
+</body>
+</html>

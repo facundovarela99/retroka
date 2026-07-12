@@ -1,0 +1,14 @@
+<nav>
+    <ul>
+        <li><a href="<% url('/productos') %>">Productos</a></li>
+        <% if (user) { %>
+        <li><form method="post" action="/retroka/logout"><button type="submit">Cerrar sesión</button></form></li>
+        <% } %>
+        <li><button id="btn-carrito" 
+                    class="btn btn-primary btn-sm" 
+                    type="button" 
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#offcanvasRight" 
+                    aria-controls="offcanvasRight">Carrito <span id="carrito-cantidad">0</span></button></li>
+    </ul>
+</nav>

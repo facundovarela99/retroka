@@ -10,7 +10,6 @@ export class CategoryModel {
         );
 
         if (rows.length === 0) throw new AppError('Not Found', 'No existen categorias', 404);
-        console.log('Categorías en modelo: ', rows)
         return rows;
     }
 
@@ -20,7 +19,6 @@ export class CategoryModel {
         );
         
         if (row.length === 0) return undefined;
-        console.log('Cateogría hallada: ', row)
         return row[0]
     }
 
