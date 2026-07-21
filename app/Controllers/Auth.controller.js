@@ -3,6 +3,7 @@ import { UserModel } from "../Models/User.model.js";
 import { comparePwd, encrypt, setAuthenticatedSession, validarNuevoUsuario } from "../Services/Auth.service.js";
 import { SESSION_COOKIE_NAME } from "../Middleware/Session.middleware.js";
 import {url} from '../Config/Env.js'
+import { generateToken } from "../Middleware/Jwt.middleware.js";
 
 export class AuthController{
     #userModel
@@ -73,6 +74,15 @@ export class AuthController{
             await comparePwd(password, user.password);
             await setAuthenticatedSession(req, user);
 
+            const token = await generateToken(user);
+
+            res.cookie('access_token', token, {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'lax',
+                maxAge: 1000 * 60 * 60
+            });
+
             return res.status(200).json({
                 data: {
                     user: req.session.user
@@ -112,6 +122,7 @@ export class AuthController{
                 sameSite: 'lax',
                 path: '/'
             });
+            res.clearCookie('access_token')
 
             return res.redirect('productos');
         } catch (error) {

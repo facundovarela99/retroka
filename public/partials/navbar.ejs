@@ -2,7 +2,9 @@
     <ul>
         <li><a href="<% url('/productos') %>">Productos</a></li>
         <% if (user) { %>
-        <li><form method="post" action="/retroka/logout"><button type="submit">Cerrar sesión</button></form></li>
+        <li><form method="post" action="/retroka/logout"><button class="btn btn-primary" type="submit">Cerrar sesión</button></form></li>
+        <% } else { %>
+        <li><a href="/retroka/login"><button type="button" class="btn btn-primary">Iniciar sesión</button></a></li>
         <% } %>
         <li><button id="btn-carrito" 
                     class="btn btn-primary btn-sm" 

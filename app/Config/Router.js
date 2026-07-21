@@ -14,6 +14,7 @@ router.post('/registro', authController.register.bind(authController));
 router.post('/logout', requireAuth, authController.logout.bind(authController));
 // router.post('/login');
 
+router.get('/', productController.getAll.bind(productController));
 router.get('/productos', productController.getAll.bind(productController));
 router.get('/producto/:id', productController.getByID.bind(productController));
 router.post('/productos/crear', isAdmin, productController.create.bind(productController));
