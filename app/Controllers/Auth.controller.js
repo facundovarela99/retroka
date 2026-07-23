@@ -4,12 +4,15 @@ import { comparePwd, encrypt, setAuthenticatedSession, validarNuevoUsuario } fro
 import { SESSION_COOKIE_NAME } from "../Middleware/Session.middleware.js";
 import {url} from '../Config/Env.js'
 import { generateToken } from "../Middleware/Jwt.middleware.js";
+import { cartController } from "./Cart.Controller.js";
 
 export class AuthController{
     #userModel
+    #cartController
 
     constructor(){
         this.#userModel = new UserModel();
+        this.#cartController = cartController
     }
 
     async register(req, res){
@@ -60,7 +63,7 @@ export class AuthController{
 
     async login(req, res) {
         try {
-            const {email, password} = req.body;
+            const {email, password, carrito} = req.body;
 
             const user = await this.#userModel.findByColumns(['id', 'email', 'password', 'is_admin'], 'email', email);
 
@@ -82,6 +85,10 @@ export class AuthController{
                 sameSite: 'lax',
                 maxAge: 1000 * 60 * 60
             });
+
+            if (carrito.length > 0){
+                this.#cartController.create(req, res, true);
+            }
 
             return res.status(200).json({
                 data: {

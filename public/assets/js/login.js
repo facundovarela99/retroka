@@ -3,10 +3,15 @@ const form = document.getElementById('form-login');
 form.addEventListener('submit', async (e)=>{
     e.preventDefault();
 
+    var carrito = [];
+
+    if (localStorage.getItem('carrito')){
+        carrito = JSON.parse(localStorage.getItem('carrito'))
+    }
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    console.log(form.dataset.url);
-    // const response = await fetch(form.dataset.url, {
+    
     const response = await fetch(form.dataset.url, {
         method: 'POST',
         credentials: 'include', 
@@ -14,7 +19,7 @@ form.addEventListener('submit', async (e)=>{
             'Content-Type':'application/json',
             // 'x-csrf-token': '<%= csrfToken %>'
         },
-        body: JSON.stringify({email: email, password:password}),
+        body: JSON.stringify({email: email, password:password, carrito: carrito}),
     });
 
     const data = await response.json();
