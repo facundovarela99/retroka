@@ -3,8 +3,31 @@ const btnCarrito = document.getElementById('btn-carrito');
 
 let carro = [];
 
+const convertirAFloat = (valor) => {
+    const numero = Number.parseFloat(valor);
+    return Number.isFinite(numero) ? numero : 0;
+};
+
+const redondearMoneda = (valor) => Number(convertirAFloat(valor).toFixed(2));
+
+const formatearMoneda = (valor) => redondearMoneda(valor).toFixed(2);
+
+const normalizarProductoCarrito = (producto) => {
+    const cantidad = Number.parseInt(producto.cantidad, 10) || 0;
+    const precio = redondearMoneda(producto.precio);
+    const total = redondearMoneda(precio * cantidad);
+
+    return {
+        ...producto,
+        cantidad,
+        precio,
+        total
+    };
+};
+
 const guardarCarrito = (carrito) => {
-    localStorage.setItem('carrito', JSON.stringify(carrito));
+    const carritoNormalizado = carrito.map(normalizarProductoCarrito);
+    localStorage.setItem('carrito', JSON.stringify(carritoNormalizado));
 };
 
 if (localStorage.getItem('carrito')){
@@ -13,9 +36,10 @@ if (localStorage.getItem('carrito')){
     let cantidad = 0;
 
     carroExistente.forEach((prod)=>{
-        cantidad+=Number(prod.cantidad);
+        const productoNormalizado = normalizarProductoCarrito(prod);
+        cantidad+=productoNormalizado.cantidad;
         document.getElementById('carrito-cantidad').textContent = cantidad;
-        carro.push(prod);
+        carro.push(productoNormalizado);
     })
 
     guardarCarrito(carro);
@@ -30,37 +54,49 @@ btnAgregarCarrito.forEach((btn) => {
             title: `Agregar ${producto.nombre} al carrito`,
             html: `
                     ${crearCarritoForm(producto).outerHTML}
-                    <span class="d-flex flex-row justify-content-center">Total: $<p id="totalProducto">0</p></span>
+                    <span class="d-flex flex-row justify-content-center"><strong>Total: $<p id="totalProducto">${formatearMoneda(producto.precio)}</p></strong></span>
                 `,
             didOpen: () => {
                 total();
+                Swal.getHtmlContainer().querySelector('#form-carrito').addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    Swal.clickConfirm();
+                });
             },
             showCancelButton: true,
             confirmButtonText: "Agregar",
             showLoaderOnConfirm: true,
-            preConfirm: async (login) => {
-                try {
-                    
-                } catch (error) {
-
+            preConfirm: () => {
+                const cantidad = Number.parseInt(document.getElementById('cantidad').value, 10);
+                const precio = convertirAFloat(producto.precio);
+                if (!cantidad || cantidad < 1) {
+                        Swal.showValidationMessage('Ingrese una cantidad válida');
+                    return false;
                 }
+                if (!Number.isFinite(precio) || precio <= 0) {
+                    Swal.showValidationMessage('El precio del producto no es valido');
+                    return false;
+                }
+
+                return cantidad;
             },
             allowOutsideClick: () => !Swal.isLoading()
         }).then((result) => {
-            const prod = {
-                id: producto.id,
-                nombre:producto.nombre,
-                cantidad:parseInt(document.getElementById('cantidad').value),
-                precio: parseFloat(producto.precio),
-                total: parseFloat(parseFloat(producto.precio))*parseInt(document.getElementById('cantidad').value)
-            };
-
             if (result.isConfirmed) {
+                const precio = redondearMoneda(producto.precio);
+                const prod = {
+                    id: producto.id,
+                    nombre:producto.nombre,
+                    cantidad: result.value,
+                    precio,
+                    total: redondearMoneda(precio * result.value)
+                };
                     
                 const productoExistente = carro.find((element) => element.id === prod.id);
                     
                 if (productoExistente) {
                     productoExistente.cantidad = productoExistente.cantidad + prod.cantidad;
+                    productoExistente.total = redondearMoneda(productoExistente.precio * productoExistente.cantidad);
                 } else{
                     carro.push(prod);
                 }
@@ -79,30 +115,30 @@ btnAgregarCarrito.forEach((btn) => {
 
 const crearCarritoForm = (producto) => {
     const swalForm = document.createElement('form');
+    swalForm.id = 'form-carrito';
+    swalForm.action = '';
+    swalForm.method = 'post';
+    swalForm.dataset.url = "<%= url('/login') %>";
 
     swalForm.innerHTML= `
-        <div>
-            <form id="form-carrito" action="" method="post" data-url="<%= url('/login') %>">
-                    <fieldset>
-                        <legend>${producto.nombre}</legend>
-                        <legend>Stock: ${producto.stock}</legend>
-                        <label for="cantidad">
-                            Cantidad
-                            <input
-                                type="number"
-                                id="cantidad"
-                                name="cantidad"
-                                autocomplete="cantidad"
-                                min="1"
-                                value="1"
-                                max="${producto.stock}"
-                                required
-                            >
-                        </label>
-                    </fieldset>
-                    Precio: $<span id="precio">${producto.precio}</span>
-                </form>
-        </div>
+        <fieldset>
+            <legend>${producto.nombre}</legend>
+            <legend>Stock: ${producto.stock}</legend>
+            <label for="cantidad">
+                Cantidad
+                <input
+                    type="number"
+                    id="cantidad"
+                    name="cantidad"
+                    autocomplete="cantidad"
+                    min="1"
+                    value="1"
+                    max="${producto.stock}"
+                    required
+                >
+            </label>
+        </fieldset>
+        Precio unitario: $<span id="precio">${formatearMoneda(producto.precio)}</span>
     `;
     return swalForm;
 }
@@ -111,10 +147,11 @@ const crearCarritoForm = (producto) => {
 const total = () => {
     let total = document.getElementById('totalProducto');
     let inputCantidad = document.getElementById('cantidad');
-    let precio = document.getElementById('precio').textContent
+    let precio = convertirAFloat(document.getElementById('precio').textContent)
 
     inputCantidad.addEventListener('input', ()=>{
-        total.textContent = parseInt(inputCantidad.value)*parseInt(precio);
+        const cantidad = Number.parseInt(inputCantidad.value, 10) || 0;
+        total.textContent = formatearMoneda(cantidad * precio);
     });
 }
 
@@ -172,11 +209,11 @@ async function productosSidebar(){
 
     if (!response.ok){
         if (localStorage.getItem('carrito')){
-            productos = JSON.parse(localStorage.getItem('carrito'));
+            productos = JSON.parse(localStorage.getItem('carrito')).map(normalizarProductoCarrito);
         }
     } else{
         const data = await response.json();
-        productos = data.carrito
+        productos = data.carrito.map(normalizarProductoCarrito)
     }
 
 
@@ -186,16 +223,16 @@ async function productosSidebar(){
     let totalProductos = 0;
     
     productos.forEach((producto)=>{
-        subtotal += producto.precio*producto.cantidad;
+        subtotal = redondearMoneda(subtotal + producto.total);
         totalProductos+=producto.cantidad;
 
         const li = document.createElement('li');
         li.className = `producto-${producto.id}`;
         li.innerHTML = `
             <h6>Producto: ${producto.nombre}</h6>
-            <h6>Precio por unidad: $${producto.precio}</h6>
+            <h6>Precio por unidad: $${formatearMoneda(producto.precio)}</h6>
             <h6 class="cantidad-elementos-${producto.id}">Cantidad: ${producto.cantidad}</h6>
-            <h6 class="total-elemento-${producto.id}">Total: $${producto.cantidad*producto.precio}</h6>
+            <h6 class="total-elemento-${producto.id}">Total: $${formatearMoneda(producto.total)}</h6>
             <button class="btn btn-success btn-sm SumarProductoSidebar" data-id="${producto.id}"><i class="fas fa-plus"></i></button>
             <button class="btn btn-warning btn-sm RestarProductoSidebar" data-id="${producto.id}"><i class="fas fa-minus"></i></button>
             <button class="btn btn-danger btn-sm EliminarProductoSidebar" data-id="${producto.id}">Eliminar</button>
@@ -205,7 +242,7 @@ async function productosSidebar(){
     });
     
     document.querySelector('.divListaProductos').appendChild(ul);
-    document.getElementById('subtotal-sidebar').textContent = subtotal;
+    document.getElementById('subtotal-sidebar').textContent = formatearMoneda(subtotal);
     document.getElementById('totalProductosSidebar').textContent = totalProductos;
 }
 
@@ -233,7 +270,7 @@ btnCarrito.addEventListener('click', async ()=>{
                 }, 
                     localStorage.clear('carrito'),
                     carro = [],
-                    document.getElementById('subtotal-sidebar').textContent = 0,
+                    document.getElementById('subtotal-sidebar').textContent = formatearMoneda(0),
                     document.getElementById('sideBarBody').innerHTML=`
                         <h6>Carrito vacío</h6>
                     `,
@@ -256,7 +293,7 @@ btnCarrito.addEventListener('click', async ()=>{
                 
                 if (productoExistente) {
                     productoExistente.cantidad+=1;
-                    productoExistente.total+=productoExistente.precio;
+                    productoExistente.total = redondearMoneda(productoExistente.precio * productoExistente.cantidad);
                 }
 
                 actualizarLayout(productoExistente, 'sumar')
@@ -298,7 +335,7 @@ btnCarrito.addEventListener('click', async ()=>{
 
                     }else if (productoExistente.cantidad > 1) {
                         productoExistente.cantidad-=1;
-                        productoExistente.total-=productoExistente.precio;
+                        productoExistente.total = redondearMoneda(productoExistente.precio * productoExistente.cantidad);
                         actualizarLayout(productoExistente, 'restar');
                     }
                 }
@@ -340,33 +377,33 @@ btnCarrito.addEventListener('click', async ()=>{
 function actualizarLayout(producto, caso){
     switch (caso) {
         case 'sumar':
-            var total = producto.cantidad*producto.precio;
-            var subtotal = parseFloat(document.getElementById('subtotal-sidebar').textContent)+producto.precio;
+            var total = redondearMoneda(producto.cantidad*producto.precio);
+            var subtotal = redondearMoneda(convertirAFloat(document.getElementById('subtotal-sidebar').textContent)+producto.precio);
             var totalProductos = parseInt(document.getElementById('totalProductosSidebar').textContent)+1;
             document.querySelector(`.cantidad-elementos-${producto.id}`).innerHTML = `Cantidad: ${producto.cantidad}`;
-            document.querySelector(`.total-elemento-${producto.id}`).innerHTML = `Total: $${total}`;
-            document.getElementById('subtotal-sidebar').textContent = `${subtotal}`;
+            document.querySelector(`.total-elemento-${producto.id}`).innerHTML = `Total: $${formatearMoneda(total)}`;
+            document.getElementById('subtotal-sidebar').textContent = `${formatearMoneda(subtotal)}`;
             document.getElementById('totalProductosSidebar').textContent = `${totalProductos}`;
             document.getElementById('carrito-cantidad').textContent = `${totalProductos}`;
             break;
         
         case 'restar':
-            var total = producto.cantidad*producto.precio;
-            var subtotal = parseFloat(document.getElementById('subtotal-sidebar').textContent)-producto.precio;
+            var total = redondearMoneda(producto.cantidad*producto.precio);
+            var subtotal = redondearMoneda(convertirAFloat(document.getElementById('subtotal-sidebar').textContent)-producto.precio);
             var totalProductos = parseInt(document.getElementById('totalProductosSidebar').textContent)-1;
             console.log('total productos en resta: ', totalProductos);
             document.querySelector(`.cantidad-elementos-${producto.id}`).innerHTML = `Cantidad: ${producto.cantidad}`;
-            document.querySelector(`.total-elemento-${producto.id}`).innerHTML = `Total: $${total}`;
+            document.querySelector(`.total-elemento-${producto.id}`).innerHTML = `Total: $${formatearMoneda(total)}`;
             console.log('subtotal antes de ser asignado: ', subtotal);
-            document.getElementById('subtotal-sidebar').textContent = `${subtotal}`;
+            document.getElementById('subtotal-sidebar').textContent = `${formatearMoneda(subtotal)}`;
             document.getElementById('totalProductosSidebar').textContent = `${totalProductos}`;
             document.getElementById('carrito-cantidad').textContent = `${totalProductos}`;
             break;
 
         case 'eliminar':
-            var subtotal = parseFloat(document.getElementById('subtotal-sidebar').textContent)-(producto.cantidad*producto.precio);
+            var subtotal = redondearMoneda(convertirAFloat(document.getElementById('subtotal-sidebar').textContent)-producto.total);
             var totalProductos = parseInt(document.getElementById('totalProductosSidebar').textContent)-producto.cantidad;
-            document.getElementById('subtotal-sidebar').innerHTML = `${subtotal}`;
+            document.getElementById('subtotal-sidebar').innerHTML = `${formatearMoneda(subtotal)}`;
             document.getElementById('totalProductosSidebar').innerHTML = `${totalProductos}`;
             document.getElementById('carrito-cantidad').innerHTML = `${totalProductos}`;
         default:
