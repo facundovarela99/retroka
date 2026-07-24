@@ -256,6 +256,7 @@ btnCarrito.addEventListener('click', async ()=>{
                 
                 if (productoExistente) {
                     productoExistente.cantidad+=1;
+                    productoExistente.total+=productoExistente.precio;
                 }
 
                 actualizarLayout(productoExistente, 'sumar')
@@ -276,26 +277,30 @@ btnCarrito.addEventListener('click', async ()=>{
 
                 if (productoExistente) {
                     if (productoExistente.cantidad == 1){
-                        const carritoActualizado = [];
 
-                        carrito.forEach((producto)=>{
-                            if (producto.id != idProducto) carritoActualizado.push(producto);
-                        });
+                        if (carrito.length > 1){
+                            const carritoActualizado = [];
 
-                        if (carritoActualizado.length === 0){
-                            localStorage.clear('carrito');
-                            return;
-                        } else{
+                            carrito.forEach((producto)=>{
+                                if (producto.id != productoExistente.id) carritoActualizado.push(producto);
+                            });
                             actualizarLayout(productoExistente, 'eliminar');
                             guardarCarrito(carritoActualizado);
                             const productoSidebar = document.querySelector(`.producto-${idProducto}`);
-                            document.querySelector('.sidebar-lista-productos').remove(productoSidebar);
+                            productoSidebar.remove();
+                            return;
+                        } else{
+                            localStorage.clear('carrito');
+                            document.getElementById('carrito-cantidad').textContent = 0;
+                            document.getElementById('sideBarBody').innerHTML = `<h6>Carrito vacío</h6>`
                             return;
                         }
-                        
+
+                    }else if (productoExistente.cantidad > 1) {
+                        productoExistente.cantidad-=1;
+                        productoExistente.total-=productoExistente.precio;
+                        actualizarLayout(productoExistente, 'restar');
                     }
-                    productoExistente.cantidad-=1;
-                    actualizarLayout(productoExistente, 'restar');
                 }
 
                 guardarCarrito(carrito);
@@ -340,21 +345,24 @@ function actualizarLayout(producto, caso){
             var totalProductos = parseInt(document.getElementById('totalProductosSidebar').textContent)+1;
             document.querySelector(`.cantidad-elementos-${producto.id}`).innerHTML = `Cantidad: ${producto.cantidad}`;
             document.querySelector(`.total-elemento-${producto.id}`).innerHTML = `Total: $${total}`;
-            document.getElementById('subtotal-sidebar').innerHTML = `${subtotal}`;
-            document.getElementById('totalProductosSidebar').innerHTML = `${totalProductos}`;
-            document.getElementById('carrito-cantidad').innerHTML = `${totalProductos}`;
+            document.getElementById('subtotal-sidebar').textContent = `${subtotal}`;
+            document.getElementById('totalProductosSidebar').textContent = `${totalProductos}`;
+            document.getElementById('carrito-cantidad').textContent = `${totalProductos}`;
             break;
         
         case 'restar':
             var total = producto.cantidad*producto.precio;
             var subtotal = parseFloat(document.getElementById('subtotal-sidebar').textContent)-producto.precio;
             var totalProductos = parseInt(document.getElementById('totalProductosSidebar').textContent)-1;
+            console.log('total productos en resta: ', totalProductos);
             document.querySelector(`.cantidad-elementos-${producto.id}`).innerHTML = `Cantidad: ${producto.cantidad}`;
             document.querySelector(`.total-elemento-${producto.id}`).innerHTML = `Total: $${total}`;
-            document.getElementById('subtotal-sidebar').innerHTML = `${subtotal}`;
-            document.getElementById('totalProductosSidebar').innerHTML = `${totalProductos}`;
-            document.getElementById('carrito-cantidad').innerHTML = `${totalProductos}`;
-        
+            console.log('subtotal antes de ser asignado: ', subtotal);
+            document.getElementById('subtotal-sidebar').textContent = `${subtotal}`;
+            document.getElementById('totalProductosSidebar').textContent = `${totalProductos}`;
+            document.getElementById('carrito-cantidad').textContent = `${totalProductos}`;
+            break;
+
         case 'eliminar':
             var subtotal = parseFloat(document.getElementById('subtotal-sidebar').textContent)-(producto.cantidad*producto.precio);
             var totalProductos = parseInt(document.getElementById('totalProductosSidebar').textContent)-producto.cantidad;
