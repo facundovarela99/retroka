@@ -157,43 +157,62 @@ function renderizarSidebar(){
         `;
 }
 
-function productosSidebar(){
-    if (localStorage.getItem('carrito')){
-        const productos = JSON.parse(localStorage.getItem('carrito'));
-        const ul = document.createElement('ul');
-        ul.className = 'sidebar-lista-productos';
-        let subtotal = 0;
-        let totalProductos = 0;
-        
-        productos.forEach((producto)=>{
-            subtotal += producto.precio*producto.cantidad;
-            totalProductos+=producto.cantidad;
+async function productosSidebar(){
 
-            const li = document.createElement('li');
-            li.className = `producto-${producto.id}`;
-            li.innerHTML = `
-                <h6>Producto: ${producto.nombre}</h6>
-                <h6>Precio por unidad: $${producto.precio}</h6>
-                <h6 class="cantidad-elementos-${producto.id}">Cantidad: ${producto.cantidad}</h6>
-                <h6 class="total-elemento-${producto.id}">Total: $${producto.cantidad*producto.precio}</h6>
-                <button class="btn btn-success btn-sm SumarProductoSidebar" data-id="${producto.id}"><i class="fas fa-plus"></i></button>
-                <button class="btn btn-warning btn-sm RestarProductoSidebar" data-id="${producto.id}"><i class="fas fa-minus"></i></button>
-                <button class="btn btn-danger btn-sm EliminarProductoSidebar" data-id="${producto.id}">Eliminar</button>
-            `;
+    var productos;
 
-            ul.appendChild(li);
-        });
-        
-        document.querySelector('.divListaProductos').appendChild(ul);
-        document.getElementById('subtotal-sidebar').textContent = subtotal;
-        document.getElementById('totalProductosSidebar').textContent = totalProductos;
+    const response = await fetch('http://localhost:3000/retroka/carrito', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type':'application/json',
+            // 'x-csrf-token': '<%= csrfToken %>'
+        },
+    });
+
+    if (!response.ok){
+        if (localStorage.getItem('carrito')){
+            productos = JSON.parse(localStorage.getItem('carrito'));
+        }
+    } else{
+        const data = await response.json();
+        productos = data.carrito
     }
+
+
+    const ul = document.createElement('ul');
+    ul.className = 'sidebar-lista-productos';
+    let subtotal = 0;
+    let totalProductos = 0;
+    
+    productos.forEach((producto)=>{
+        subtotal += producto.precio*producto.cantidad;
+        totalProductos+=producto.cantidad;
+
+        const li = document.createElement('li');
+        li.className = `producto-${producto.id}`;
+        li.innerHTML = `
+            <h6>Producto: ${producto.nombre}</h6>
+            <h6>Precio por unidad: $${producto.precio}</h6>
+            <h6 class="cantidad-elementos-${producto.id}">Cantidad: ${producto.cantidad}</h6>
+            <h6 class="total-elemento-${producto.id}">Total: $${producto.cantidad*producto.precio}</h6>
+            <button class="btn btn-success btn-sm SumarProductoSidebar" data-id="${producto.id}"><i class="fas fa-plus"></i></button>
+            <button class="btn btn-warning btn-sm RestarProductoSidebar" data-id="${producto.id}"><i class="fas fa-minus"></i></button>
+            <button class="btn btn-danger btn-sm EliminarProductoSidebar" data-id="${producto.id}">Eliminar</button>
+        `;
+
+        ul.appendChild(li);
+    });
+    
+    document.querySelector('.divListaProductos').appendChild(ul);
+    document.getElementById('subtotal-sidebar').textContent = subtotal;
+    document.getElementById('totalProductosSidebar').textContent = totalProductos;
 }
 
-btnCarrito.addEventListener('click', ()=>{
+btnCarrito.addEventListener('click', async ()=>{
     if (localStorage.getItem('carrito')){
         renderizarSidebar();
-        productosSidebar();
+        await productosSidebar();
 
 
         document.getElementById('btn-vaciar-carrito-sidebar').addEventListener('click', ()=>{

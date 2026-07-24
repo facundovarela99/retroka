@@ -22,6 +22,8 @@ form.addEventListener('submit', async (e)=>{
         body: JSON.stringify({email: email, password:password, carrito: carrito}),
     });
 
+    localStorage.clear('carrito');
+
     const data = await response.json();
 
     if (data.error) {

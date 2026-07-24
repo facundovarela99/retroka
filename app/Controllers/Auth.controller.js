@@ -86,8 +86,13 @@ export class AuthController{
                 maxAge: 1000 * 60 * 60
             });
 
+
             if (carrito.length > 0){
-                this.#cartController.create(req, res, true);
+                if (await this.#userModel.getUserCart(user.id) !== null){
+                    await this.#cartController.update(req, res, true)
+                } else{
+                   await this.#cartController.create(req, res, true);
+                }
             }
 
             return res.status(200).json({

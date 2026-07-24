@@ -19,7 +19,6 @@ export class ProductController{
     async getAll(req, res){
         try {
             const user = req.session.user;
-            console.log('Usuario: ', user);
             const productos = await this.#productModel.getAll();
             res.status(200).render('productos',{
                 user:user,

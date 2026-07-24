@@ -63,4 +63,14 @@ export class UserModel{
 
         return rows[0];
     }
+
+    async getUserCart(id){
+        const [row] = await pool.execute(
+            `SELECT carrito_id FROM carritos_x_usuarios cu WHERE cu.usuario_id = ?;`,[id]
+        );
+        
+        if (row.length === 0) return null
+
+        return row[0].carrito_id;
+    }
 }

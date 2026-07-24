@@ -28,4 +28,5 @@ router.patch('/categorias/actualizar', isAdmin, categoryController.update.bind(c
 router.delete('/categorias/eliminar', isAdmin, categoryController.delete.bind(categoryController));
 
 
+router.get('/carrito', requireAuth, cartController.getCart.bind(cartController));
 router.post('/carrito/crear', requireAuth, cartController.create.bind(cartController));
