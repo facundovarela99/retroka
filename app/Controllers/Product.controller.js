@@ -3,6 +3,7 @@ import { ProductModel } from "../Models/Product.model.js"
 import { validarNuevoProducto, validarProductoActualizacion } from "../Services/Product.service.js";
 import { AppError } from "../Models/Error.model.js";
 import { base_path, url } from "../Config/Env.js";
+import { CartModel } from "../Models/Cart.model.js";
 
 
 
@@ -10,20 +11,26 @@ export class ProductController{
 
     #productModel
     #categoryController
+    #cartModel
 
     constructor(){
         this.#productModel = new ProductModel();
         this.#categoryController = new CategoryModel();
+        this.#cartModel = new CartModel();
     }
 
     async getAll(req, res){
         try {
             const user = req.session.user;
             const productos = await this.#productModel.getAll();
+
+            const carritoUsuario = this.#cartModel.getUserCart(user.id);
+
             res.status(200).render('productos',{
                 user:user,
                 title: 'Productos',
                 productos:productos,
+                carrito:carritoUsuario,
                 url:url,
             })
         } catch (error) {

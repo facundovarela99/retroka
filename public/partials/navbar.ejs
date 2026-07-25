@@ -1,3 +1,18 @@
+<%
+const cantidad = typeof carrito !== 'undefined' && Array.isArray(carrito)
+    ? cantidadProductos(carrito)
+    : 0;
+
+
+function cantidadProductos(productos){
+    let cant = 0;
+    for (p of productos){
+        cant+=p.cantidad
+    }
+    return Number(cant);
+}
+
+%>
 <nav>
     <ul>
         <li><a href="<% url('/productos') %>">Productos</a></li>
@@ -11,6 +26,9 @@
                     type="button" 
                     data-bs-toggle="offcanvas"
                     data-bs-target="#offcanvasRight" 
-                    aria-controls="offcanvasRight">Carrito <span id="carrito-cantidad">0</span></button></li>
+                    aria-controls="offcanvasRight">Carrito <span id="carrito-cantidad"><%= cantidad %></span></button></li>
     </ul>
 </nav>
+<script>
+    console.log(document.getElementById('carrito-cantidad').textContent)
+</script>
