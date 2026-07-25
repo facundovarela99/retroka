@@ -3,23 +3,20 @@
 <body>
     <%- include('../partials/navbar') %>
     <h1>
-        <%= producto.nombre %>
+        Nombre: <%= producto.nombre %>
     </h1>
     <h2>
-        <%= producto.descripcion %>
+        Descripcion: <%= producto.descripcion %>
     </h2>
     <h2>
-        <%= producto.precio %>
+        Precio: $<%= producto.precio %>
     </h2>
     <h2>
-        <%= producto.stock %>
+        Stock: <%= producto.stock %>
     </h2>
-    <h2>
-        <%= producto.categoria %>
-    </h2>
-    <% if (producto.categoria){ %>
+    <% if (producto.categoria_producto){ %>
         <h2>
-            <%= producto.categoria %>
+           Categoría: <%= producto.categoria_producto %>
         </h2>
     <% } else { %>
         <h2>Sin categoría</h2>

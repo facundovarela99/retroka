@@ -1,21 +1,16 @@
 <%
-const cantidad = typeof carrito !== 'undefined' && Array.isArray(carrito)
-    ? cantidadProductos(carrito)
-    : 0;
+var cantidad = 0;
 
-
-function cantidadProductos(productos){
-    let cant = 0;
-    for (p of productos){
-        cant+=p.cantidad
+if (typeof carrito !== 'undefined' && Array.isArray(carrito) && carrito.length > 0){
+    for (p of carrito){
+        cantidad+=p.cantidad
     }
-    return Number(cant);
 }
 
 %>
 <nav>
     <ul>
-        <li><a href="<% url('/productos') %>">Productos</a></li>
+        <li><a href="<%= url('/productos') %>">Productos</a></li>
         <% if (user) { %>
         <li><form method="post" action="/retroka/logout"><button class="btn btn-primary" type="submit">Cerrar sesión</button></form></li>
         <% } else { %>
@@ -29,6 +24,3 @@ function cantidadProductos(productos){
                     aria-controls="offcanvasRight">Carrito <span id="carrito-cantidad"><%= cantidad %></span></button></li>
     </ul>
 </nav>
-<script>
-    console.log(document.getElementById('carrito-cantidad').textContent)
-</script>

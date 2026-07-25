@@ -23,8 +23,11 @@ export class ProductController{
         try {
             const user = req.session.user;
             const productos = await this.#productModel.getAll();
+            var carritoUsuario = [];
 
-            const carritoUsuario = this.#cartModel.getUserCart(user.id);
+            if (user){
+                carritoUsuario = await this.#cartModel.getUserCart(user.id);
+            }
 
             res.status(200).render('productos',{
                 user:user,
@@ -44,15 +47,26 @@ export class ProductController{
 
     async getByID(req, res){
         const id = req.params.id;
-        
+
         try {
+            const user = req.session.user;
+        
             if (!id) throw new AppError('Not Found', 'Producto inexistente', 404);
         
             const producto = await this.#productModel.findByID(id);
 
+            var carritoUsuario = []
+
+            if (user){
+                carritoUsuario = await this.#cartModel.getUserCart(user.id);
+            }
+
             res.status(200).render('producto', {
+                user:user,
                 title:producto.nombre,
                 producto:producto,
+                carrito:carritoUsuario,
+                url:url,
             })
 
         } catch (error) {

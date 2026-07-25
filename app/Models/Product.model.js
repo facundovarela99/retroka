@@ -15,7 +15,10 @@ export class ProductModel{
 
     async findByID(id){
         const [row] = await pool.execute(
-            `SELECT * FROM ${this.#table} WHERE id = ?;`,[id]
+            `SELECT *, c.nombre categoria_producto FROM ${this.#table} p 
+            JOIN categorias c
+            ON p.categoria = c.id
+            WHERE p.id = ?;`,[id]
         );
 
         if (row.length === 0) throw new AppError('Not Found', 'Producto inexistente', 404);
