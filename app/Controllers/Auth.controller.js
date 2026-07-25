@@ -5,6 +5,7 @@ import { SESSION_COOKIE_NAME } from "../Middleware/Session.middleware.js";
 import {url} from '../Config/Env.js'
 import { generateToken } from "../Middleware/Jwt.middleware.js";
 import { cartController } from "./Cart.Controller.js";
+import { generarCsrfToken, obtenerCsrfToken } from "../Helpers.js";
 
 export class AuthController{
     #userModel
@@ -58,13 +59,24 @@ export class AuthController{
         res.status(200).render('login', {
             title:'Login',
             url,
+            csrf_token: obtenerCsrfToken(req),
         });
     }
 
     async login(req, res) {
         try {
+            const csrfToken = req.get('x-csrf-token');
+            
+            if (!csrfToken || csrfToken !== obtenerCsrfToken(req)) {
+                return res.status(403).json({
+                    data: null,
+                    error: 'Forbidden',
+                    message: 'CSRF token invalido',
+                    status: 403
+                });
+            }
             const {email, password, carrito} = req.body;
-
+            
             const user = await this.#userModel.findByColumns(['id', 'email', 'password', 'is_admin'], 'email', email);
 
             if (!user) return res.status(400).json({
@@ -115,10 +127,7 @@ export class AuthController{
     async logout(req, res){
         try {
             if (!req.session) {
-                return res.status(200).json({
-                    data: true,
-                    message: 'Logout exitoso'
-                });
+                return res.redirect('productos');
             }
 
             await new Promise((resolve, reject) => {

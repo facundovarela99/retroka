@@ -12,12 +12,12 @@ router.get('/login', authController.showLogin.bind(authController));
 router.post('/login', authController.login.bind(authController));
 
 router.post('/registro', authController.register.bind(authController));
-router.post('/logout', requireAuth, authController.logout.bind(authController));
+router.post('/logout', authController.logout.bind(authController));
 // router.post('/login');
 
 router.get('/', productController.getAll.bind(productController));
 router.get('/productos', productController.getAll.bind(productController));
-router.get('/producto/:id', productController.getByID.bind(productController));
+router.get('/producto/:id', productController.product.bind(productController));
 router.post('/productos/crear', isAdmin, productController.create.bind(productController));
 router.patch('/productos/actualizar', isAdmin, productController.update.bind(productController));
 router.delete('/productos/eliminar', isAdmin, productController.delete.bind(productController));
@@ -30,3 +30,4 @@ router.delete('/categorias/eliminar', isAdmin, categoryController.delete.bind(ca
 
 router.get('/carrito', requireAuth, cartController.getCart.bind(cartController));
 router.post('/carrito/crear', requireAuth, cartController.create.bind(cartController));
+router.post('/carrito/agregar', requireAuth, cartController.update.bind(cartController));

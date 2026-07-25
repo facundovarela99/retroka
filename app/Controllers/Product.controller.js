@@ -4,6 +4,7 @@ import { validarNuevoProducto, validarProductoActualizacion } from "../Services/
 import { AppError } from "../Models/Error.model.js";
 import { base_path, url } from "../Config/Env.js";
 import { CartModel } from "../Models/Cart.model.js";
+import { obtenerCsrfToken } from "../Helpers.js";
 
 
 
@@ -35,6 +36,8 @@ export class ProductController{
                 productos:productos,
                 carrito:carritoUsuario,
                 url:url,
+                baseUrl:base_path(),
+                csrf_token:obtenerCsrfToken(req)
             })
         } catch (error) {
             res.status(error.statusCode).json({
@@ -45,7 +48,7 @@ export class ProductController{
         }
     }
 
-    async getByID(req, res){
+    async product(req, res){
         const id = req.params.id;
 
         try {
@@ -67,6 +70,8 @@ export class ProductController{
                 producto:producto,
                 carrito:carritoUsuario,
                 url:url,
+                baseUrl:base_path(),
+                csrf_token:obtenerCsrfToken(req)
             })
 
         } catch (error) {

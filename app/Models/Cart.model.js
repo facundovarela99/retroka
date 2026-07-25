@@ -19,7 +19,7 @@ export class CartModel{
 
     async getUserCart(userId) {
         const [rows] = await pool.execute(
-            `SELECT p.nombre, p.precio, cp.cantidad, cp.total FROM ${this.#tables.carritos} c
+            `SELECT p.id, p.nombre, p.precio, cp.cantidad, cp.total FROM ${this.#tables.carritos} c
             JOIN ${this.#tables.carritos_x_productos} cp
             ON c.id = cp.carrito_id
             JOIN productos p
@@ -46,11 +46,11 @@ export class CartModel{
             const lastInsertId = result.insertId; 
 
 
-            carrito.productos.forEach( async (producto)=>{
+            for (const producto of carrito.productos) {
                 await connection.execute(
                     `INSERT INTO ${this.#tables.carritos_x_productos} VALUES (?,?,?,?);`,[lastInsertId, producto.id, producto.cantidad, producto.total]
                 );
-            });
+            }
 
             await connection.execute(
                 `INSERT INTO ${this.#tables.carritos_x_usuarios} VALUES (?,?);`,[lastInsertId, userId]
@@ -68,7 +68,7 @@ export class CartModel{
 
     async getProductInCart(productId, userId){
         const [rows] = await pool.execute(
-            `SELECT p.nombre, p.precio, cp.cantidad, cp.total FROM ${this.#tables.carritos} c
+            `SELECT p.id, p.nombre, p.precio, cp.cantidad, cp.total FROM ${this.#tables.carritos} c
             JOIN ${this.#tables.carritos_x_productos} cp
             ON c.id = cp.carrito_id
             JOIN productos p

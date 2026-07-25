@@ -2,6 +2,7 @@ const form = document.getElementById('form-login');
 
 form.addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
     var carrito = [];
 
@@ -17,7 +18,7 @@ form.addEventListener('submit', async (e)=>{
         credentials: 'include', 
         headers: {
             'Content-Type':'application/json',
-            // 'x-csrf-token': '<%= csrfToken %>'
+            'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({email: email, password:password, carrito: carrito}),
     });

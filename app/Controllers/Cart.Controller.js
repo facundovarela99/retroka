@@ -57,19 +57,28 @@ class CartController{
 
     async update(req, res, login){
         const user = req.session.user;
+        const carro = req.body.carrito;
 
         const cart = await this.#cartModel.getUserCart(user.id);
 
-        if (cart.length === 0) return false;
-
-        const carro = req.body.carrito;
-
-
-        const userCartID = await this.#cartModel.getUserCartId(user.id);
-
-        const productosFueraDelCarro = [];
-
         try {
+            if (cart.length === 0) {
+                const carrito = await this.#cartService.cartData(carro);
+                await this.#cartModel.createUserCart(user.id, carrito);
+
+                if (login!==true){
+                    return res.status(200).json({
+                        status:'success',
+                        data:true,
+                        message:'Carrito creado'
+                    });
+                }
+
+                return true;
+            }
+
+            const userCartID = await this.#cartModel.getUserCartId(user.id);
+
             for (const producto of carro) {
                 const productoEnCarrito = await this.#cartModel.getProductInCart(producto.id, user.id)
                 if (productoEnCarrito){
@@ -86,7 +95,7 @@ class CartController{
                 return res.status(200).json({
                     status:'success',
                     data:true,
-                    message:'Carrito creado'
+                    message:'Carrito actualizado'
                 });
             }
             
@@ -111,4 +120,3 @@ class CartController{
 
 
 export const cartController = new CartController();
-

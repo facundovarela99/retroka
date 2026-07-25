@@ -9,6 +9,7 @@
                 <p>Accedé al panel de administración de Retroka.</p>
             </header>
             <form id="form-login" action="/retroka/login" method="post" data-url="<%= url('/login') %>">
+                <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <fieldset>
                     <legend>Credenciales de acceso</legend>
                     <label for="email">

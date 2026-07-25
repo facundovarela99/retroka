@@ -1,7 +1,19 @@
 const btnAgregarCarrito = document.querySelectorAll('.btn-agregar-al-carrito');
 const btnCarrito = document.getElementById('btn-carrito');
 
+const loggedIn = window.APP_STATE?.loggedIn || null;
+const carritoInicial = window.APP_STATE?.carroUsuario || [];
+const baseUrl = window.APP_STATE?.baseUrl || '';
+const csrf_token = window.APP_STATE?.csrf_token || "";
 let carro = [];
+
+if (loggedIn) {
+    console.log('Usuario logueado:', loggedIn);
+    console.log('Carro inicial:', carritoInicial);
+    console.log('baseUrl: ', baseUrl)
+    console.log('csrfToken: ', csrf_token)
+}
+
 
 const convertirAFloat = (valor) => {
     const numero = Number.parseFloat(valor);
@@ -30,7 +42,43 @@ const guardarCarrito = (carrito) => {
     localStorage.setItem('carrito', JSON.stringify(carritoNormalizado));
 };
 
-if (localStorage.getItem('carrito')) {
+const enviarProductoABase = async (form, producto) => {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (csrf_token) {
+        headers['x-csrf-token'] = csrf_token;
+    }
+
+    const response = await fetch(form.action, {
+        method: form.method.toUpperCase(),
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({
+            carrito: [producto]
+        })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || 'No se pudo agregar el producto al carrito');
+    }
+
+    return data;
+};
+
+if (loggedIn && carritoInicial.length > 0) {
+    let cantidad = 0;
+
+    carritoInicial.forEach((prod) => {
+        const productoNormalizado = normalizarProductoCarrito(prod);
+        cantidad += productoNormalizado.cantidad;
+        document.getElementById('carrito-cantidad').textContent = cantidad;
+        carro.push(productoNormalizado);
+    })
+} else if (localStorage.getItem('carrito')) {
     const carroExistente = JSON.parse(localStorage.getItem('carrito'))
 
     let cantidad = 0;
@@ -66,7 +114,7 @@ btnAgregarCarrito.forEach((btn) => {
             showCancelButton: true,
             confirmButtonText: "Agregar",
             showLoaderOnConfirm: true,
-            preConfirm: () => {
+            preConfirm: async () => {
                 const cantidad = Number.parseInt(document.getElementById('cantidad').value, 10);
                 const precio = convertirAFloat(producto.precio);
                 if (!cantidad || cantidad < 1) {
@@ -78,19 +126,30 @@ btnAgregarCarrito.forEach((btn) => {
                     return false;
                 }
 
-                return cantidad;
+                const prod = {
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    cantidad,
+                    precio: redondearMoneda(precio),
+                    total: redondearMoneda(precio * cantidad)
+                };
+
+                if (loggedIn) {
+                    try {
+                        const form = Swal.getHtmlContainer().querySelector('#form-carrito');
+                        await enviarProductoABase(form, prod);
+                    } catch (error) {
+                        Swal.showValidationMessage(error.message);
+                        return false;
+                    }
+                }
+
+                return prod;
             },
             allowOutsideClick: () => !Swal.isLoading()
         }).then((result) => {
             if (result.isConfirmed) {
-                const precio = redondearMoneda(producto.precio);
-                const prod = {
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    cantidad: result.value,
-                    precio,
-                    total: redondearMoneda(precio * result.value)
-                };
+                const prod = result.value;
 
                 const productoExistente = carro.find((element) => element.id === prod.id);
 
@@ -106,7 +165,10 @@ btnAgregarCarrito.forEach((btn) => {
                 });
                 document.getElementById('carrito-cantidad').textContent = totalProductos;
 
-                guardarCarrito(carro);
+                if (!loggedIn) {
+                    guardarCarrito(carro);
+                }
+
                 Swal.fire("¡Producto agregado!", "", "success");
             }
         });
@@ -116,11 +178,11 @@ btnAgregarCarrito.forEach((btn) => {
 const crearCarritoForm = (producto) => {
     const swalForm = document.createElement('form');
     swalForm.id = 'form-carrito';
-    swalForm.action = '';
+    swalForm.action = `${baseUrl}/carrito/agregar`;
     swalForm.method = 'post';
-    swalForm.dataset.url = "<%= url('/login') %>";
 
     swalForm.innerHTML = `
+        <input type="hidden" name="csrf_token" value="${csrf_token}">
         <fieldset>
             <legend>${producto.nombre}</legend>
             <legend>Stock: ${producto.stock}</legend>
@@ -195,29 +257,8 @@ function renderizarSidebar() {
         `;
 }
 
-async function productosSidebar() {
-
-    var productos = [];
-
-    const response = await fetch('http://localhost:3000/retroka/carrito', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-            // 'x-csrf-token': '<%= csrfToken %>'
-        },
-    });
-
-    if (!response.ok) {
-        if (localStorage.getItem('carrito')) {
-            productos = JSON.parse(localStorage.getItem('carrito')).map(normalizarProductoCarrito);
-        }
-    } else {
-        const data = await response.json();
-        console.log(data);
-        productos = data.carrito.map(normalizarProductoCarrito)
-    }
-
+function productosSidebar() {
+    var productos = carro.map(normalizarProductoCarrito);
 
     const ul = document.createElement('ul');
     ul.className = 'sidebar-lista-productos';
@@ -257,7 +298,7 @@ async function productosSidebar() {
 
 btnCarrito.addEventListener('click', async () => {
     renderizarSidebar();
-    await productosSidebar();
+    productosSidebar();
 
     if (document.querySelector('.sidebar-lista-productos')) {
         document.getElementById('btn-vaciar-carrito-sidebar').addEventListener('click', () => {

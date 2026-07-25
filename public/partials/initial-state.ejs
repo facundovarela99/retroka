@@ -1,0 +1,8 @@
+<script>
+    window.APP_STATE = {
+        loggedIn: <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>,
+        carroUsuario: <%- JSON.stringify(typeof carrito !== 'undefined' ? carrito : []) %>,
+        baseUrl: <%- JSON.stringify(typeof baseUrl !== 'undefined' && baseUrl ? baseUrl : "") %>,
+        csrf_token: <%- JSON.stringify(typeof csrf_token !== 'undefined' ? csrf_token : "") %>
+    };
+</script>

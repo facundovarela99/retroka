@@ -1,4 +1,5 @@
 import zod from 'zod';
+import { randomBytes } from 'crypto';
 
 export function capitalizarPrimerLetra(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -84,3 +85,16 @@ export const numeroOpcional = (schema, invalidNumberMessage = 'El campo debe ser
         });
     }
 }).pipe(schema.optional()));
+
+export function generarCsrfToken(req) {
+    req.session.csrf_token = randomBytes(32).toString('hex');
+
+    return req.session.csrf_token;
+}
+
+export function obtenerCsrfToken(req) {
+    if (!req.session?.csrf_token){
+        return generarCsrfToken(req);
+    }
+    return req.session?.csrf_token || null;
+}
