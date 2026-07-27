@@ -224,9 +224,21 @@ function renderBotonesCarrito() { //Renderizado de los botones por cada producto
     //Pendiente: obtener la sesión de usuario en el script
     //Pendiente: generar un token con JWT para corroborar que haya un usuario logueado.
     //PENDIENTE: Preguntar si el usuario está logueado, si no, que aparezca el botón de iniciar sesión en lugar de pagar.
+    
     html += `
-            <button class="btn btn-success btn-sm" id="btnPagarCarritoSideBar" style="padding: 5px; color: black;"><a href="https://www.mercadopago.com.ar/" target="_blank" style="color: inherit; text-decoration: none; font-family: Fjalla One;">Ir a pagar</a></button>
-        <button class="btn btn-danger btn-sm" id="btn-vaciar-carrito-sidebar" style="font-family: Fjalla One; padding: 5px; color: black">Vaciar carrito</button>`;
+            <button class="btn btn-success btn-sm" 
+                    id="btnPagarCarritoSideBar" 
+                    style="padding: 5px; color: black;">
+                        <a href="https://www.mercadopago.com.ar/" 
+                            target="_blank" 
+                            style="color: inherit; text-decoration: none; font-family: Fjalla One;">Ir a pagar
+                        </a>
+            </button>
+            <button class="btn btn-danger btn-sm" 
+                    id="btn-vaciar-carrito-sidebar" 
+                    style="font-family: Fjalla One; padding: 5px; color: black"
+                    data-delete-url="${loggedIn ? '/carrito/vaciar' : ''}">Vaciar carrito
+            </button>`;
     // }
     return html;
 }
@@ -310,8 +322,29 @@ btnCarrito.addEventListener('click', async () => {
                 confirmButtonColor: "#3085d6",
                 cancelButtonColor: "#d33",
                 confirmButtonText: "Vaciar",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
+                cancelButtonText: "Cancelar",
+            
+            preConfirm: async () => {
+
+                if (loggedIn) {
+                    try {
+                        const urlDelete = document.getElementById('btn-vaciar-carrito-sidebar').dataset.deleteUrl;
+                        const response = await fetch(baseUrl+urlDelete, {
+                            method: 'delete',
+                            credentials: 'include',
+                        });
+
+                        const data = await response.json();
+                        console.log(data);
+                    } catch (error) {
+                        Swal.showValidationMessage(error.message);
+                        return false;
+                    }
+                }
+
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+            }).then(async (result) => {
 
                 if (result.isConfirmed) Swal.fire({
                     title: "Carrito vaciado",
@@ -326,7 +359,7 @@ btnCarrito.addEventListener('click', async () => {
                     document.getElementById('carrito-cantidad').textContent = 0
                 );
 
-            });
+            })
         });
 
         //Debe hacer una petición por medio de AJAX a la BBDD para sumar un producto

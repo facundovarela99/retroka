@@ -106,3 +106,9 @@
     margin: 15px;
     background: radial-gradient(rgb(124, 188, 234));
 }
+
+#btn-vaciar-carrito-sidebar{
+    font-family: Fjalla One; 
+    padding: 5px; 
+    color: black
+}

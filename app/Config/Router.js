@@ -31,3 +31,4 @@ router.delete('/categorias/eliminar', isAdmin, categoryController.delete.bind(ca
 router.get('/carrito', requireAuth, cartController.getCart.bind(cartController));
 router.post('/carrito/crear', requireAuth, cartController.create.bind(cartController));
 router.post('/carrito/agregar', requireAuth, cartController.update.bind(cartController));
+router.delete('/carrito/vaciar', requireAuth, cartController.delete.bind(cartController));

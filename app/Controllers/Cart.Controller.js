@@ -111,6 +111,36 @@ class CartController{
         }
     }
 
+    async delete(req, res){
+        const user = req.session.user;
+
+        const carro = await this.#cartModel.getUserCart(user.id);
+
+        if (!carro ?? carro.length === 0){
+            return res.status(404).json({
+                message:'Carro inexistente'
+            });
+        }
+
+        try {
+            await this.#cartModel.deleteUserCart(user.id);
+
+            return res.status(200).json({
+                status:'success',
+                message:'Carrito vaciado'
+            });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({
+                data: null,
+                error: error.error || 'Internal Server Error',
+                message: error.message,
+                status: error.statusCode || 500
+            });
+        }
+        }
+
+
+
     // async get(req, res){
     //     const user = req.session.user;
 

@@ -148,8 +148,34 @@ export class CartModel{
         } finally {
             if (connection) await connection.release();
         }
+    }
 
+    async deleteUserCart(userId){
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
 
+            const cartId = await this.getUserCartId(userId);
+
+            await connection.execute(
+                `DELETE FROM ${this.#tables.carritos_x_usuarios} WHERE usuario_id = ?;`,[userId]
+            );
+
+            await connection.execute(
+                `DELETE FROM ${this.#tables.carritos_x_productos} WHERE carrito_id = ?;`,[cartId]
+            );
+
+            await connection.execute(
+                `DELETE FROM ${this.#tables.carritos} WHERE id = ?;`,[cartId]
+            );
+
+            await connection.commit();
+
+        } catch (error) {
+           throw new AppError('Internal Server Error', error.message, 500);
+        } finally {
+            if (connection) await connection.release();
+        }
     }
 
     async getAmountByCart(cartId){
