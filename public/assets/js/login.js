@@ -23,11 +23,9 @@ form.addEventListener('submit', async (e)=>{
         body: JSON.stringify({email: email, password:password, carrito: carrito}),
     });
 
-    localStorage.clear('carrito');
-
     const data = await response.json();
 
-    if (data.error) {
+    if (!response.ok || data.error) {
         const mensaje = document.getElementById('mensaje-error');
         mensaje.textContent = data.message;
         mensaje.style.display = 'block';
@@ -36,6 +34,12 @@ form.addEventListener('submit', async (e)=>{
             mensaje.style.display = 'none';
         }, 4000)
     } else {
+        localStorage.removeItem('carrito');
+
+        if (data.carrito?.message && data.carrito.message !== 'Carrito creado' && data.carrito.message !== 'Carrito actualizado') {
+            sessionStorage.setItem('mensaje-carrito', data.carrito.message);
+        }
+
         window.location.href = 'productos';
     }
 

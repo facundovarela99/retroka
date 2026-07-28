@@ -75,7 +75,9 @@ export class AuthController{
                     status: 403
                 });
             }
-            const {email, password, carrito} = req.body;
+            const {email, password, carrito = []} = req.body;
+            const carritoLocal = Array.isArray(carrito) ? carrito : [];
+            let resultadoCarrito = null;
             
             const user = await this.#userModel.findByColumns(['id', 'email', 'password', 'is_admin'], 'email', email);
 
@@ -99,19 +101,23 @@ export class AuthController{
             });
 
 
-            if (carrito.length > 0){
+            if (carritoLocal.length > 0){
+                req.body.carrito = carritoLocal;
+
                 if (await this.#userModel.getUserCart(user.id) !== null){
-                    await this.#cartController.update(req, res, true)
+                    resultadoCarrito = await this.#cartController.update(req, res, true)
                 } else{
-                   await this.#cartController.create(req, res, true);
+                   resultadoCarrito = await this.#cartController.create(req, res, true);
                 }
             }
 
             return res.status(200).json({
                 data: {
-                    user: req.session.user
+                    user: req.session.user,
+                    carrito: resultadoCarrito?.productos || []
                 },
-                message:'Login exitoso'
+                message:'Login exitoso',
+                carrito: resultadoCarrito
             });
 
         } catch (error) {
