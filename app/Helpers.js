@@ -1,5 +1,5 @@
 import zod from 'zod';
-import { randomBytes } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
 
 export function capitalizarPrimerLetra(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -97,4 +97,30 @@ export function obtenerCsrfToken(req) {
         return generarCsrfToken(req);
     }
     return req.session?.csrf_token || null;
+}
+
+export function validarCsrfToken(req) {
+    const tokenEnviado = req.get('x-csrf-token') || req.body?.csrf_token;
+    const tokenSesion = req.session?.csrf_token;
+
+    if (typeof tokenEnviado !== 'string' || typeof tokenSesion !== 'string') {
+        return false;
+    }
+
+    const tokenEnviadoBuffer = Buffer.from(tokenEnviado);
+    const tokenSesionBuffer = Buffer.from(tokenSesion);
+
+    return tokenEnviadoBuffer.length === tokenSesionBuffer.length
+        && timingSafeEqual(tokenEnviadoBuffer, tokenSesionBuffer);
+}
+
+export function esPeticionAjax(req) {
+    const requestedWith = req.get('x-requested-with');
+    const accept = req.get('accept') || '';
+    const contentType = req.get('content-type') || '';
+
+    return req.xhr
+        || requestedWith?.toLowerCase() === 'xmlhttprequest'
+        || accept.toLowerCase().includes('application/json')
+        || contentType.toLowerCase().includes('application/json');
 }

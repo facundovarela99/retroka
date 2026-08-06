@@ -47,7 +47,9 @@ const guardarCarrito = (carrito) => {
 
 const enviarProductoABase = async (form, producto) => {
     const headers = {
-        'Content-Type': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
     };
 
     if (csrf_token) {
@@ -490,6 +492,11 @@ btnCarrito.addEventListener('click', async () => {
                         const response = await fetch(baseUrl+urlDelete, {
                             method: 'delete',
                             credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(csrf_token ? { 'X-CSRF-Token': csrf_token } : {})
+                            }
                         });
 
                         const data = await response.json();
@@ -563,7 +570,9 @@ function actualizarLayout(producto, caso) {
 
 async function manejarProductoSidebar(producto, caso, form = null) {
     const headers = {
-        'Content-Type': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
     };
 
     if (csrf_token) {

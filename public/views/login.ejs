@@ -8,7 +8,7 @@
                 <h1 id="login-title">Iniciar sesión</h1>
                 <p>Accedé al panel de administración de Retroka.</p>
             </header>
-            <form id="form-login" action="/retroka/login" method="post" data-url="<%= url('/login') %>">
+            <form id="form-login" action="<%= url('/login') %>" method="post">
                 <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <fieldset>
                     <legend>Credenciales de acceso</legend>
@@ -37,9 +37,14 @@
             </form>
             <footer id="footer-login">
                 <p>Uso exclusivo para usuarios autorizados.</p>
-                <p id="mensaje-error">Mensaje de error</p>
+                <p
+                    id="mensaje-error"
+                    role="alert"
+                    aria-live="polite"
+                    <% if (auth_message?.message) { %>style="display: block; color: red;"<% } %>
+                ><%= auth_message?.message || '' %></p>
             </footer>
-        <section>
+        </section>
     </main>
 <script src="/assets/js/login.js"></script>
 </body>

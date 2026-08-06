@@ -1,11 +1,58 @@
 import dotenv from 'dotenv';
-dotenv.config({path: '.env'});
 
+dotenv.config({ path: '.env', quiet: true });
 
-export function base_path(){
-    return process.env.APP_URL;
+const requiredVariables = [
+    'APP_URL',
+    'PORT',
+    'SESSION_SECRET',
+    'DB_HOST',
+    'DB_NAME',
+    'DB_PORT',
+    'DB_USER'
+];
+
+const missingVariables = requiredVariables.filter((key) => !process.env[key]);
+
+if (missingVariables.length > 0) {
+    throw new Error(`Faltan variables de entorno requeridas: ${missingVariables.join(', ')}`);
 }
 
-export function url(path){
-    return (process.env.APP_URL+path).trim();
+if (Buffer.byteLength(process.env.SESSION_SECRET, 'utf8') < 32) {
+    throw new Error('SESSION_SECRET debe tener al menos 32 bytes');
+}
+
+if (!Number.isInteger(Number(process.env.PORT)) || Number(process.env.PORT) < 1) {
+    throw new Error('PORT debe ser un puerto valido');
+}
+
+if (!Number.isInteger(Number(process.env.DB_PORT)) || Number(process.env.DB_PORT) < 1) {
+    throw new Error('DB_PORT debe ser un puerto valido');
+}
+
+let appUrl;
+
+try {
+    appUrl = new URL(process.env.APP_URL);
+} catch {
+    throw new Error('APP_URL debe ser una URL absoluta valida');
+}
+
+if (process.env.NODE_ENV === 'production') {
+    if (appUrl.protocol !== 'https:') {
+        throw new Error('APP_URL debe usar HTTPS en produccion');
+    }
+
+    if (!process.env.DB_PASSWORD) {
+        throw new Error('DB_PASSWORD es obligatoria en produccion');
+    }
+}
+
+export function base_path(){
+    return process.env.APP_URL.replace(/\/+$/, '');
+}
+
+export function url(path = ''){
+    const normalizedPath = String(path).replace(/^\/+/, '');
+    return normalizedPath ? `${base_path()}/${normalizedPath}` : base_path();
 }

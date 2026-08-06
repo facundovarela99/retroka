@@ -1,0 +1,4 @@
+interface:
+  display_name: "Login Context"
+  short_description: "Disena y audita autenticacion segura"
+  default_prompt: "Usa $login-context para disenar o auditar un modulo de autenticacion seguro y adaptable."

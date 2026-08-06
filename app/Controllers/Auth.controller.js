@@ -1,164 +1,241 @@
-import { AppError } from "../Models/Error.model.js";
-import { UserModel } from "../Models/User.model.js";
-import { comparePwd, encrypt, setAuthenticatedSession, validarNuevoUsuario } from "../Services/Auth.service.js";
-import { SESSION_COOKIE_NAME } from "../Middleware/Session.middleware.js";
-import {url} from '../Config/Env.js'
-import { generateToken } from "../Middleware/Jwt.middleware.js";
-import { cartController } from "./Cart.Controller.js";
-import { generarCsrfToken, obtenerCsrfToken } from "../Helpers.js";
+import { AppError } from '../Models/Error.model.js';
+import { UserModel } from '../Models/User.model.js';
+import {
+    encrypt,
+    setAuthenticatedSession,
+    validarCredenciales,
+    validarLogin,
+    validarNuevoUsuario
+} from '../Services/Auth.service.js';
+import { SESSION_COOKIE_NAME } from '../Middleware/Session.middleware.js';
+import { resetAuthRateLimit } from '../Middleware/Auth.middleware.js';
+import { url } from '../Config/Env.js';
+import { cartController } from './Cart.Controller.js';
+import {
+    esPeticionAjax,
+    obtenerCsrfToken,
+    validarCsrfToken
+} from '../Helpers.js';
 
-export class AuthController{
-    #userModel
-    #cartController
+const LOGIN_PATH = '/retroka/login';
+const DEFAULT_AUTH_PATH = '/retroka/productos';
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+};
+
+const responsePayload = ({ data = null, error = null, message, status, redirectTo }) => ({
+    data,
+    ...(error ? { error } : {}),
+    message,
+    status,
+    redirectTo
+});
+
+const responder = (req, res, { status, payload, redirectTo, flashType = null }) => {
+    res.set('Cache-Control', 'no-store');
+
+    if (esPeticionAjax(req)) {
+        return res.status(status).json(payload);
+    }
+
+    if (flashType && req.session) {
+        req.session.auth_message = {
+            type: flashType,
+            message: payload.message
+        };
+    }
+
+    return res.redirect(303, redirectTo);
+};
+
+const responderError = (req, res, error) => {
+    const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+    const internalError = status >= 500;
+    const message = internalError
+        ? 'No se pudo completar la autenticacion. Intenta nuevamente.'
+        : error.message;
+
+    if (internalError) {
+        console.error('Error interno de autenticacion:', error);
+    }
+
+    return responder(req, res, {
+        status,
+        payload: responsePayload({
+            error: internalError ? 'Internal Server Error' : error.error,
+            message,
+            status,
+            redirectTo: LOGIN_PATH
+        }),
+        redirectTo: LOGIN_PATH,
+        flashType: 'error'
+    });
+};
+
+const exigirCsrf = (req) => {
+    if (!validarCsrfToken(req)) {
+        throw new AppError('Forbidden', 'CSRF token invalido', 403);
+    }
+};
+
+export class AuthController {
+    #userModel;
+    #cartController;
 
     constructor(){
         this.#userModel = new UserModel();
-        this.#cartController = cartController
+        this.#cartController = cartController;
     }
 
     async register(req, res){
         try {
+            exigirCsrf(req);
             const body = validarNuevoUsuario(req.body);
 
-            const userExist = await this.#userModel.findByColumns(['email'], 'email', body.email);
+            const userExist = await this.#userModel.findByColumns(['id'], 'email', body.email);
 
-            if (userExist) return res.status(400).json({
-                data: null,
-                error: 'Bad Request',
-                message:'El correo ya se encuentra en uso',
-                status: 400
-            })
+            if (userExist) {
+                throw new AppError('Conflict', 'El correo ya se encuentra en uso', 409);
+            }
 
             body.password = await encrypt(body.password);
 
             const user = await this.#userModel.create(body);
             await setAuthenticatedSession(req, user);
+            resetAuthRateLimit(req, 'register');
 
-            return res.status(201).json({
-                data: {
-                    user: req.session.user
-                },
-                message: 'Registro exitoso'
+            res.clearCookie('access_token', cookieOptions);
+
+            const payload = responsePayload({
+                data: { authenticated: true },
+                message: 'Registro exitoso',
+                status: 201,
+                redirectTo: DEFAULT_AUTH_PATH
             });
 
+            return responder(req, res, {
+                status: 201,
+                payload,
+                redirectTo: DEFAULT_AUTH_PATH
+            });
         } catch (error) {
-            return res.status(error.statusCode || 500).json({
-                data: null,
-                error: error.error || 'Internal Server Error',
-                message:error.message,
-                status: error.statusCode || 500
-            })
+            return responderError(req, res, error);
         }
     }
 
     async showLogin(req, res){
-        if (req.session.user){
-            return res.redirect('productos');
+        if (req.session?.user){
+            return res.redirect(303, DEFAULT_AUTH_PATH);
         }
 
-        res.status(200).render('login', {
-            title:'Login',
+        const authMessage = req.session?.auth_message || null;
+
+        if (req.session?.auth_message) {
+            delete req.session.auth_message;
+        }
+
+        res.set('Cache-Control', 'no-store');
+
+        return res.status(200).render('login', {
+            title: 'Login',
             url,
             csrf_token: obtenerCsrfToken(req),
+            auth_message: authMessage
         });
     }
 
     async login(req, res) {
         try {
-            const csrfToken = req.get('x-csrf-token');
-            
-            if (!csrfToken || csrfToken !== obtenerCsrfToken(req)) {
-                return res.status(403).json({
-                    data: null,
-                    error: 'Forbidden',
-                    message: 'CSRF token invalido',
-                    status: 403
-                });
-            }
-            const {email, password, carrito = []} = req.body;
-            const carritoLocal = Array.isArray(carrito) ? carrito : [];
-            let resultadoCarrito = null;
-            
-            const user = await this.#userModel.findByColumns(['id', 'email', 'password', 'is_admin'], 'email', email);
+            exigirCsrf(req);
 
-            if (!user) return res.status(400).json({
-                data: null,
-                error:'Bad Request',
-                message:'Usuario inexistente',
-                status:400
-            });
+            const { email, password } = validarLogin(req.body);
+            const carritoLocal = Array.isArray(req.body.carrito) ? req.body.carrito : [];
+            const user = await this.#userModel.findForAuthentication(email);
 
-            await comparePwd(password, user.password);
+            await validarCredenciales(password, user);
             await setAuthenticatedSession(req, user);
+            resetAuthRateLimit(req, 'login');
 
-            const token = await generateToken(user);
+            res.clearCookie('access_token', cookieOptions);
 
-            res.cookie('access_token', token, {
-                httpOnly: true,
-                secure: false,
-                sameSite: 'lax',
-                maxAge: 1000 * 60 * 60
-            });
-
-
-            if (carritoLocal.length > 0){
-                req.body.carrito = carritoLocal;
-
-                if (await this.#userModel.getUserCart(user.id) !== null){
-                    resultadoCarrito = await this.#cartController.update(req, res, true)
-                } else{
-                   resultadoCarrito = await this.#cartController.create(req, res, true);
-                }
-            }
-
-            return res.status(200).json({
-                data: {
-                    user: req.session.user,
-                    carrito: resultadoCarrito?.productos || []
-                },
-                message:'Login exitoso',
+            const resultadoCarrito = await this.#sincronizarCarritoInvitado(req, user, carritoLocal);
+            const payload = {
+                ...responsePayload({
+                    data: { authenticated: true },
+                    message: 'Login exitoso',
+                    status: 200,
+                    redirectTo: DEFAULT_AUTH_PATH
+                }),
                 carrito: resultadoCarrito
-            });
+            };
 
-        } catch (error) {
-            return res.status(error.statusCode || 500).json({
-                data: null,
-                error: error.error || 'Internal Server Error',
-                message: error.message,
-                status: error.statusCode || 500
+            return responder(req, res, {
+                status: 200,
+                payload,
+                redirectTo: DEFAULT_AUTH_PATH
             });
+        } catch (error) {
+            return responderError(req, res, error);
         }
     }
 
     async logout(req, res){
         try {
-            if (!req.session) {
-                return res.redirect('productos');
-            }
+            exigirCsrf(req);
 
             await new Promise((resolve, reject) => {
-                req.session.destroy((err) => {
-                    if (err) return reject(err);
+                req.session.destroy((error) => {
+                    if (error) return reject(error);
                     resolve();
                 });
             });
 
-            res.clearCookie(SESSION_COOKIE_NAME, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                path: '/'
-            });
-            res.clearCookie('access_token')
+            res.clearCookie(SESSION_COOKIE_NAME, cookieOptions);
+            res.clearCookie('access_token', cookieOptions);
 
-            return res.redirect('productos');
-        } catch (error) {
-            return res.status(500).json({
-                data: null,
-                error: 'Internal Server Error',
-                message: error.message,
-                status: 500
+            const payload = responsePayload({
+                data: { authenticated: false },
+                message: 'Sesion cerrada',
+                status: 200,
+                redirectTo: DEFAULT_AUTH_PATH
             });
+
+            return responder(req, res, {
+                status: 200,
+                payload,
+                redirectTo: DEFAULT_AUTH_PATH
+            });
+        } catch (error) {
+            return responderError(req, res, error);
+        }
+    }
+
+    async #sincronizarCarritoInvitado(req, user, carritoLocal) {
+        if (carritoLocal.length === 0) {
+            return null;
+        }
+
+        try {
+            req.body.carrito = carritoLocal;
+
+            if (await this.#userModel.getUserCart(user.id) !== null) {
+                return await this.#cartController.update(req, null, true);
+            }
+
+            return await this.#cartController.create(req, null, true);
+        } catch (error) {
+            console.error('No se pudo sincronizar el carrito durante el login:', error);
+
+            return {
+                status: 'warning',
+                data: false,
+                message: 'El login fue exitoso, pero no se pudo sincronizar el carrito',
+                productos: []
+            };
         }
     }
 }

@@ -10,7 +10,16 @@ export class UserModel{
             connection = await pool.getConnection();
 
             await connection.beginTransaction();
-            const {email, nombre, password, telefono, codigo_postal, localidad, provincia, is_admin} = data;
+            const {
+                email,
+                nombre,
+                password,
+                telefono = null,
+                codigo_postal = null,
+                localidad = null,
+                provincia = null,
+                is_admin = false
+            } = data;
 
             const mysqlDate = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
@@ -28,9 +37,31 @@ export class UserModel{
             };
         } catch (error) {
             if (connection) await connection.rollback();
-            throw new AppError('Internal Server Error', error.message, 500);
+
+            if (error.code === 'ER_DUP_ENTRY') {
+                throw new AppError('Conflict', 'El correo ya se encuentra en uso', 409);
+            }
+
+            throw new AppError('Internal Server Error', 'No se pudo crear el usuario', 500);
         } finally {
             if (connection) await connection.release();
+        }
+    }
+
+    async findForAuthentication(email) {
+        try {
+            const [rows] = await pool.execute(
+                'SELECT id, email, password, is_admin FROM usuarios WHERE email = ? LIMIT 1',
+                [email]
+            );
+
+            return rows[0];
+        } catch (error) {
+            if (error.code === 'ECONNREFUSED') {
+                throw new AppError('Service Unavailable', 'Servicio temporalmente no disponible', 503);
+            }
+
+            throw new AppError('Internal Server Error', 'Error interno del servidor', 500);
         }
     }
 
