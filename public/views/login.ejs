@@ -2,50 +2,137 @@
 <html lang="es">
 <%- include('../partials/meta') %>
 <body id="body-login">
-    <main id="main-login">
-        <section id="login-section" aria-labelledby="login-title">
-            <header id="header-login">
-                <h1 id="login-title">Iniciar sesión</h1>
-                <p>Accedé al panel de administración de Retroka.</p>
-            </header>
-            <form id="form-login" action="<%= url('/login') %>" method="post">
-                <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                <fieldset>
-                    <legend>Credenciales de acceso</legend>
-                    <label for="email">
-                        Correo electrónico
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            autocomplete="email"
-                            required
-                        >
+    <main class="login-page flex-grow-1 d-flex flex-column justify-content-center align-items-center w-100 mx-auto position-relative">
+
+    <!-- Fondo decorativo -->
+    <div class="login-background position-absolute top-0 start-0 w-100 h-100 pe-none"></div>
+
+    <!-- Login -->
+    <section class="login-container w-100 bg-white border shadow-sm position-relative d-flex flex-column" aria-labelledby="login-title">
+
+        <!-- Brand & Header -->
+        <header class="d-flex flex-column align-items-center text-center gap-3">
+
+            <div class="brand-title text-uppercase">
+                Retroka
+            </div>
+
+            <div class="d-flex flex-column gap-2 mt-3">
+                <h1 id="login-title" class="login-title mb-0">
+                    Iniciar sesión
+                </h1>
+            </div>
+
+        </header>
+
+        <!-- Divider -->
+        <div class="login-divider w-100"></div>
+
+        <!-- Login Form -->
+        <form
+            id="form-login"
+            action="<%= url('/login') %>"
+            method="post"
+            class="d-flex flex-column login-form"
+            aria-describedby="mensaje-error"
+        >
+
+            <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+
+            <!-- Section Title -->
+            <div>
+                <h2 class="section-label text-uppercase mb-0">
+                    Credenciales de acceso
+                </h2>
+            </div>
+
+            <!-- Inputs -->
+            <div class="d-flex flex-column input-group-container">
+
+                <!-- Email -->
+                <div class="d-flex flex-column input-container">
+
+                    <label class="input-label" for="email">
+                        Email
                     </label>
-                    <label for="password">
-                        Contraseña
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            autocomplete="current-password"
-                            required
-                        >
-                    </label>
-                </fieldset>
-                <button type="submit">Ingresar</button>
-            </form>
-            <footer id="footer-login">
-                <p>Uso exclusivo para usuarios autorizados.</p>
-                <p
-                    id="mensaje-error"
-                    role="alert"
-                    aria-live="polite"
-                    <% if (auth_message?.message) { %>style="display: block; color: red;"<% } %>
-                ><%= auth_message?.message || '' %></p>
-            </footer>
-        </section>
-    </main>
+
+                    <input
+                        class="form-control input-field"
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="nombre@ejemplo.com"
+                        autocomplete="email"
+                        required
+                    >
+
+                </div>
+
+                <!-- Password -->
+                <div class="d-flex flex-column input-container">
+
+                    <div class="d-flex justify-content-between align-items-end">
+                        <label class="input-label" for="password">
+                            Contraseña
+                        </label>
+                    </div>
+
+                    <input
+                        class="form-control input-field"
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+            <p
+                id="mensaje-error"
+                class="login-error mb-0<% if (auth_message?.message) { %> is-visible<% } %>"
+                role="alert"
+                aria-live="polite"
+                aria-atomic="true"
+            ><%= auth_message?.message || '' %></p>
+
+            <!-- Submit -->
+            <div class="login-submit">
+
+                <button
+                    class="btn btn-login w-100 d-flex justify-content-center align-items-center gap-2"
+                    type="submit"
+                >
+                    <span>Ingresar</span>
+
+                    <svg class="button-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"></path>
+                    </svg>
+                </button>
+
+            </div>
+
+            <div class="register-anchor">
+                <a
+                    class="btn btn-login w-100 d-flex justify-content-center align-items-center gap-2"
+                    href="<%= url('/registro') %>"
+                >
+                    <span>Registrarse</span>
+
+                    <svg class="button-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"></path>
+                    </svg>
+                </a>
+            </div>
+
+        </form>
+
+    </section>
+
+</main>
 <script src="/assets/js/login.js"></script>
 </body>
 </html>

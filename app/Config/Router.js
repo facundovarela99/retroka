@@ -12,6 +12,7 @@ export const router = Router();
 router.get('/login', authController.showLogin.bind(authController));
 router.post('/login', authRateLimit('login'), authController.login.bind(authController));
 
+router.get('/registro', authController.showRegister.bind(authController));
 router.post('/registro', authRateLimit('register'), authController.register.bind(authController));
 router.post('/logout', requireAuth, requireCsrf, authController.logout.bind(authController));
 // router.post('/login');

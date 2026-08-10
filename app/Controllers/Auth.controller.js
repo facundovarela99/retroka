@@ -91,6 +91,27 @@ export class AuthController {
         this.#cartController = cartController;
     }
 
+    async showRegister(req, res){
+        if (req.session?.user){
+            return res.redirect(303, DEFAULT_AUTH_PATH);
+        }
+
+        const authMessage = req.session?.auth_message || null;
+
+        if (req.session?.auth_message) {
+            delete req.session.auth_message;
+        }
+
+        res.set('Cache-Control', 'no-store');
+
+        return res.status(200).render('registro', {
+            title: 'Registro',
+            url,
+            csrf_token: obtenerCsrfToken(req),
+            auth_message: authMessage
+        });
+    }
+
     async register(req, res){
         try {
             exigirCsrf(req);

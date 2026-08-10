@@ -1,0 +1,187 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../partials/meta') %>
+<body id="body-registro">
+    
+<!-- Main Content -->
+<main class="register-main d-flex w-100 mx-auto">
+
+    <!-- Image Section - Desktop Only -->
+    <div class="register-image-section d-none d-md-block position-relative" aria-hidden="true">
+
+        <div
+            class="register-image position-absolute top-0 start-0 w-100 h-100"
+        ></div>
+
+        <!-- Overlay -->
+        <div class="register-image-overlay position-absolute top-0 start-0 w-100 h-100"></div>
+
+    </div>
+
+
+    <!-- Form Section -->
+    <section
+        class="register-form-section d-flex align-items-center justify-content-center"
+        aria-labelledby="register-title"
+    >
+
+        <div class="register-form-container w-100">
+
+            <!-- Header -->
+            <header class="register-heading">
+                <h1 id="register-title" class="register-title">
+                    Crea tu cuenta en Retroka
+                </h1>
+
+                <p class="register-description mb-0">
+                    Únete a nuestra comunidad urbana.
+                </p>
+            </header>
+
+
+            <!-- Registration Form -->
+            <form class="register-form" method="post" action="<%= url('/registro') %>">
+
+                <!-- Full Name -->
+                <div>
+                    <label class="visually-hidden" for="fullname">
+                        Nombre completo
+                    </label>
+
+                    <input
+                        class="form-control register-input"
+                        id="fullname"
+                        name="fullname"
+                        placeholder="Nombre completo"
+                        type="text"
+                        autocomplete="name"
+                        required
+                    >
+                </div>
+
+
+                <!-- Email -->
+                <div>
+                    <label class="visually-hidden" for="email">
+                        Email
+                    </label>
+
+                    <input
+                        class="form-control register-input"
+                        id="email"
+                        name="email"
+                        placeholder="Correo electrónico"
+                        type="email"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+
+
+                <!-- Password -->
+                <div>
+                    <label class="visually-hidden" for="password">
+                        Contraseña
+                    </label>
+
+                    <div class="position-relative">
+
+                        <input
+                            class="form-control register-input register-password-input"
+                            id="password"
+                            name="password"
+                            placeholder="Contraseña"
+                            type="password"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <button
+                            class="password-toggle position-absolute top-0 end-0 h-100 d-flex align-items-center justify-content-center"
+                            type="button"
+                            aria-label="Mostrar contraseña"
+                            aria-controls="password"
+                        >
+                            <svg class="password-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 12c-3.58 0-6.82-1.95-8.53-5C5.18 8.95 8.42 7 12 7s6.82 1.95 8.53 5c-1.71 3.05-4.95 5-8.53 5Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"></path>
+                            </svg>
+                        </button>
+
+                    </div>
+                </div>
+
+
+                <!-- Confirm Password -->
+                <div>
+                    <label class="visually-hidden" for="confirm_password">
+                        Confirmar contraseña
+                    </label>
+
+                    <div class="position-relative">
+
+                        <input
+                            class="form-control register-input register-password-input"
+                            id="confirm_password"
+                            name="confirm_password"
+                            placeholder="Confirmar contraseña"
+                            type="password"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <button
+                            class="password-toggle position-absolute top-0 end-0 h-100 d-flex align-items-center justify-content-center"
+                            type="button"
+                            aria-label="Mostrar confirmación de contraseña"
+                            aria-controls="confirm_password"
+                        >
+                            <svg class="password-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 12c-3.58 0-6.82-1.95-8.53-5C5.18 8.95 8.42 7 12 7s6.82 1.95 8.53 5c-1.71 3.05-4.95 5-8.53 5Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"></path>
+                            </svg>
+                        </button>
+
+                    </div>
+                </div>
+
+
+                <!-- Submit -->
+                <div class="register-submit">
+
+                    <button
+                        class="btn register-button w-100 d-flex align-items-center justify-content-center gap-2"
+                        type="submit"
+                    >
+                        Crear cuenta
+
+                        <svg class="register-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"></path>
+                        </svg>
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <!-- Login Link -->
+            <div class="register-login text-center">
+
+                <p class="register-login-text mb-0">
+                    ¿Ya tienes cuenta?
+
+                    <a class="register-login-link text-decoration-none" href="<%= url('/login') %>">
+                        Inicia sesión
+                    </a>
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+</body>
+</html>

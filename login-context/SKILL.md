@@ -41,7 +41,7 @@ Exigir como minimo:
 6. Comprobar duplicados para experiencia de usuario y respaldar la comprobacion con una restriccion unica en la base.
 7. Derivar la contrasena con Argon2id, scrypt o bcrypt y un costo configurable. Guardar solamente el hash.
 8. Crear el usuario con consulta parametrizada y traducir errores internos a mensajes publicos seguros.
-9. Si el producto inicia sesion al registrar, regenerar la sesion antes de guardar la identidad.
+9. Si el usuario inicia sesion al registrar, regenerar la sesion antes de guardar la identidad.
 10. Devolver JSON o redirigir segun el contrato HTTP definido.
 
 No reutilizar el endpoint de registro publico para crear administradores. Crear un flujo administrativo separado, autenticado y autorizado.

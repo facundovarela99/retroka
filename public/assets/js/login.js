@@ -5,8 +5,7 @@ const mostrarError = (message) => {
     if (!mensaje) return;
 
     mensaje.textContent = message;
-    mensaje.style.display = 'block';
-    mensaje.style.color = 'red';
+    mensaje.classList.add('is-visible');
 };
 
 const obtenerCarritoLocal = () => {
