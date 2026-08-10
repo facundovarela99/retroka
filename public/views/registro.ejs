@@ -1,10 +1,8 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <%- include('../partials/meta') %>
 <body id="body-registro">
-    
+
 <!-- Main Content -->
 <main class="register-main d-flex w-100 mx-auto">
 
@@ -75,6 +73,44 @@
                         placeholder="Correo electrónico"
                         type="email"
                         autocomplete="email"
+                        required
+                    >
+                </div>
+                
+                <!-- Provincia -->
+                <div>
+                    <label class="visually-hidden" for="provincia">
+                        Provincia
+                    </label>
+
+                    <select id="provincia">
+                        <option value="">Seleccione una provincia</option>
+                    </select>
+                </div>
+                
+                <!-- Localidad -->
+                <div>
+                    <label class="visually-hidden" for="localidad">
+                        Localidad
+                    </label>
+
+                    <select id="localidad" disabled>
+                        <option value="">Seleccione primero una provincia...</option>
+                    </select>
+                </div>
+                
+                <!-- Código Postal -->
+                <div>
+                    <label class="visually-hidden" for="cp">
+                        Código Postal
+                    </label>
+
+                    <input
+                        class="form-control register-input"
+                        id="cp"
+                        name="cp"
+                        placeholder="Código Postal"
+                        type="text"
                         required
                     >
                 </div>
@@ -183,5 +219,7 @@
     </section>
 
 </main>
+<%- include('../partials/initial-state') %>
+<script src="/assets/js/registro.js"></script>
 </body>
 </html>
