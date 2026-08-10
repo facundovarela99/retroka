@@ -57,6 +57,7 @@ export class ProductController{
             if (!id) throw new AppError('Not Found', 'Producto inexistente', 404);
         
             const producto = await this.#productModel.findByID(id);
+            const variantes = await this.#productModel.findVariants(producto);
 
             var carritoUsuario = []
 
@@ -68,6 +69,7 @@ export class ProductController{
                 user:user,
                 title:producto.nombre,
                 producto:producto,
+                variantes:variantes,
                 carrito:carritoUsuario,
                 url:url,
                 baseUrl:base_path(),

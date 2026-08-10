@@ -28,6 +28,28 @@ export class ProductModel{
         return row[0];
     }
 
+    // Hasta contar con un identificador de modelo/variante en la tabla,
+    // categoría + descripción (o nombre) funciona como agrupador estable.
+    async findVariants(producto){
+        const descripcion = typeof producto.descripcion === 'string'
+            ? producto.descripcion.trim()
+            : '';
+        const identityColumn = descripcion ? 'descripcion' : 'nombre';
+        const identityValue = descripcion || producto.nombre;
+
+        const [rows] = await pool.execute(
+            `SELECT p.*, c.nombre AS categoria_producto
+            FROM ${this.#table} p
+            LEFT JOIN categorias c ON p.categoria = c.id
+            WHERE p.categoria <=> ?
+                AND LOWER(TRIM(p.${identityColumn})) = LOWER(TRIM(?))
+            ORDER BY FIELD(p.talle, 'S', 'M', 'L', 'XL'), p.id;`,
+            [producto.categoria ?? null, identityValue]
+        );
+
+        return rows;
+    }
+
     async create(body){
         let connection;
         let {nombre, descripcion, talle, stock, precio, categoria, url, imagen} = body;

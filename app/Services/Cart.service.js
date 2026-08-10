@@ -53,7 +53,8 @@ export class CartService{
         return {
             producto: {
                 ...producto,
-                nombre: producto.nombre ?? productoBase.nombre,
+                nombre: productoBase.nombre,
+                talle: productoBase.talle,
                 precio,
                 cantidad: cantidadPermitida,
                 total,

@@ -121,7 +121,7 @@ btnAgregarCarrito.forEach((btn) => {
 
         Swal.fire({
             theme: 'dark',
-            title: `Agregar ${producto.nombre} al carrito`,
+            title: `Agregar ${producto.nombre}${producto.talle ? ` - Talle ${producto.talle}` : ''} al carrito`,
             html: `
                     ${crearCarritoForm(producto).outerHTML}
                     <span class="d-flex flex-row justify-content-center"><strong>Total: $<p id="totalProducto">${formatearMoneda(producto.precio)}</p></strong></span>
@@ -170,6 +170,7 @@ btnAgregarCarrito.forEach((btn) => {
                 const prod = {
                     id: producto.id,
                     nombre: producto.nombre,
+                    talle: producto.talle || null,
                     cantidad,
                     precio: redondearMoneda(precio),
                     total: redondearMoneda(precio * cantidad),
@@ -234,6 +235,7 @@ const crearCarritoForm = (producto) => {
         <input type="hidden" name="csrf_token" value="${csrf_token}">
         <fieldset>
             <legend>${producto.nombre}</legend>
+            ${producto.talle ? `<p>Talle: ${producto.talle}</p>` : ''}
             <legend>Stock: ${producto.stock}</legend>
             <label for="cantidad">
                 Cantidad
@@ -339,6 +341,7 @@ function productosSidebar() {
         li.className = `producto-${producto.id}`;
         li.innerHTML = `
             <h6>Producto: ${producto.nombre}</h6>
+            ${producto.talle ? `<h6>Talle: ${producto.talle}</h6>` : ''}
             <h6>Precio por unidad: $${formatearMoneda(producto.precio)}</h6>
             <h6 class="cantidad-elementos-${producto.id}">Cantidad: ${producto.cantidad}</h6>
             <h6 class="total-elemento-${producto.id}">Total: $${formatearMoneda(producto.total)}</h6>

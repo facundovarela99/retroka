@@ -1,27 +1,213 @@
-<%- include('../partials/meta') %>
+<%
+const talles = ['S', 'M', 'L', 'XL'];
+const variantesProducto = Array.isArray(variantes) && variantes.length > 0
+    ? variantes
+    : [producto];
+const imagenGenerica = '/assets/img/product-placeholder.svg';
 
-<body>
+const obtenerImagenProducto = (item) => {
+    const candidatos = [item.url, item.imagen];
+    const imagen = candidatos.find((valor) => {
+        if (typeof valor !== 'string' || valor.trim().length === 0) return false;
+
+        const referencia = valor.trim();
+        return /^(?:https?:\/\/|\/|data:image\/)/i.test(referencia)
+            || /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i.test(referencia);
+    });
+
+    return imagen ? imagen.trim() : imagenGenerica;
+};
+
+const variantesPorTalle = new Map();
+
+talles.forEach((talle) => {
+    const candidatas = variantesProducto.filter(
+        (variante) => String(variante.talle || '').trim().toUpperCase() === talle
+    );
+    const variante = candidatas.find(
+        (item) => Number(item.id) === Number(producto.id) && Number.parseInt(item.stock, 10) > 0
+    ) || candidatas.find(
+        (item) => Number.parseInt(item.stock, 10) > 0
+    ) || candidatas.find(
+        (item) => Number(item.id) === Number(producto.id)
+    ) || candidatas[0];
+
+    if (variante) variantesPorTalle.set(talle, variante);
+});
+
+const stockProductoActual = Number.parseInt(producto.stock, 10) || 0;
+const talleProductoActual = String(producto.talle || '').trim().toUpperCase();
+const varianteInicial = talles.includes(talleProductoActual) && stockProductoActual > 0
+    ? producto
+    : null;
+const hayStockDisponible = variantesProducto.some(
+    (variante) => talles.includes(String(variante.talle || '').trim().toUpperCase())
+        && Number.parseInt(variante.stock, 10) > 0
+);
+const imagenProducto = obtenerImagenProducto(producto);
+const usaImagenGenerica = imagenProducto === imagenGenerica;
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../partials/meta') %>
+<body id="body-producto">
+
     <%- include('../partials/navbar') %>
-    <h1>
-        Nombre: <%= producto.nombre %>
-    </h1>
-    <h2>
-        Descripcion: <%= producto.descripcion %>
-    </h2>
-    <h2>
-        Precio: $<%= producto.precio %>
-    </h2>
-    <h2>
-        Stock: <%= producto.stock %>
-    </h2>
-    <% if (producto.categoria_producto){ %>
-        <h2>
-           Categoría: <%= producto.categoria_producto %>
-        </h2>
-    <% } else { %>
-        <h2>Sin categoría</h2>
-    <% } %>
-<%- include('../partials/sidebar') %>
-<%- include('../partials/initial-state') %>
-<script type="module" defer src="/assets/js/carrito.js"></script>
+
+    <main class="product-detail-main w-100 mx-auto">
+        <div class="row g-4">
+
+            <div class="col-12 col-lg-7">
+                <div class="product-main-image-container position-relative overflow-hidden">
+                    <img
+                        id="product-main-image"
+                        class="product-main-image position-absolute top-0 start-0 w-100 h-100<%= usaImagenGenerica ? ' product-main-image-placeholder' : '' %>"
+                        src="<%= imagenProducto %>"
+                        alt="<%= usaImagenGenerica ? 'Producto sin imagen: ' : '' %><%= producto.nombre %>"
+                        decoding="async"
+                        onerror="this.onerror=null;this.src='<%= imagenGenerica %>';this.classList.add('product-main-image-placeholder')"
+                    >
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-5">
+                <section class="product-detail-info d-flex flex-column" aria-labelledby="product-detail-title">
+
+                    <div class="product-detail-category">
+                        <%= producto.categoria_producto || 'Sin categoría' %>
+                    </div>
+
+                    <h1 id="product-detail-title" class="product-detail-title">
+                        <%= producto.nombre %>
+                    </h1>
+
+                    <p id="product-detail-price" class="product-detail-price">
+                        $<%= producto.precio %>
+                    </p>
+
+                    <div class="product-detail-description-container">
+                        <p class="product-detail-description">
+                            <%= producto.descripcion %>
+                        </p>
+
+                        <p
+                            id="product-stock-status"
+                            class="product-stock d-flex align-items-center gap-2 mb-0<%= varianteInicial ? '' : ' product-stock-unavailable' %>"
+                            aria-live="polite"
+                        >
+                            <span class="product-stock-indicator" aria-hidden="true"></span>
+                            <span data-stock-text>
+                                <% if (varianteInicial) { %>
+                                    <%= stockProductoActual %> disponible<%= stockProductoActual === 1 ? '' : 's' %> en talle <%= producto.talle %>
+                                <% } else if (hayStockDisponible) { %>
+                                    Seleccioná un talle disponible
+                                <% } else { %>
+                                    Sin stock disponible
+                                <% } %>
+                            </span>
+                        </p>
+                    </div>
+
+                    <div class="product-options border-top border-bottom">
+                        <div class="d-flex justify-content-between align-items-center product-size-header">
+                            <span class="product-size-label" id="product-size-label">
+                                Talle
+                            </span>
+
+                            <span class="product-size-help" id="product-size-help">
+                                Elegí una opción disponible
+                            </span>
+                        </div>
+
+                        <div
+                            class="d-flex flex-wrap product-size-options"
+                            role="group"
+                            aria-labelledby="product-size-label"
+                            aria-describedby="product-size-help"
+                        >
+                            <% talles.forEach((talle) => { %>
+                                <%
+                                const variante = variantesPorTalle.get(talle);
+                                const stockVariante = variante ? Number.parseInt(variante.stock, 10) || 0 : 0;
+                                const disponible = Boolean(variante) && stockVariante > 0;
+                                const seleccionada = disponible
+                                    && varianteInicial
+                                    && Number(variante.id) === Number(varianteInicial.id);
+                                const estadoTalle = !variante
+                                    ? 'no disponible'
+                                    : stockVariante <= 0
+                                        ? 'sin stock'
+                                        : `${stockVariante} disponible${stockVariante === 1 ? '' : 's'}`;
+                                %>
+                                <button
+                                    class="product-size-button<%= seleccionada ? ' active' : '' %>"
+                                    type="button"
+                                    data-talle="<%= talle %>"
+                                    data-producto="<%= variante ? JSON.stringify(variante) : '' %>"
+                                    aria-pressed="<%= seleccionada ? 'true' : 'false' %>"
+                                    aria-label="Talle <%= talle %>: <%= estadoTalle %>"
+                                    title="Talle <%= talle %>: <%= estadoTalle %>"
+                                    <%= disponible ? '' : 'disabled' %>
+                                >
+                                    <%= talle %>
+                                </button>
+                            <% }) %>
+                        </div>
+                    </div>
+
+                    <button
+                        id="product-add-cart"
+                        class="product-add-cart-button btn-agregar-al-carrito w-100 d-flex align-items-center justify-content-center text-uppercase"
+                        type="button"
+                        data-producto="<%= varianteInicial ? JSON.stringify(varianteInicial) : '' %>"
+                        aria-describedby="product-stock-status"
+                        <%= varianteInicial ? '' : 'disabled' %>
+                    >
+                        <%= varianteInicial
+                            ? 'Agregar al carro'
+                            : hayStockDisponible
+                                ? 'Seleccioná un talle disponible'
+                                : 'Sin stock' %>
+                    </button>
+
+                    <div class="product-accordions">
+                        <details class="product-accordion border-bottom" open>
+                            <summary class="product-accordion-summary d-flex justify-content-between align-items-center">
+                                <span>Material y cuidados</span>
+                                <svg class="accordion-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="m7.41 8.59 4.59 4.58 4.59-4.58L18 10l-6 6-6-6 1.41-1.41Z"></path>
+                                </svg>
+                            </summary>
+
+                            <div class="product-accordion-content">
+                                Consultá la etiqueta interior de la prenda para conocer las instrucciones específicas de lavado y cuidado.
+                            </div>
+                        </details>
+
+                        <details class="product-accordion border-bottom">
+                            <summary class="product-accordion-summary d-flex justify-content-between align-items-center">
+                                <span>Envíos y devoluciones</span>
+                                <svg class="accordion-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="m7.41 8.59 4.59 4.58 4.59-4.58L18 10l-6 6-6-6 1.41-1.41Z"></path>
+                                </svg>
+                            </summary>
+
+                            <div class="product-accordion-content">
+                                Los plazos y condiciones aplicables se informarán antes de confirmar la compra.
+                            </div>
+                        </details>
+                    </div>
+
+                </section>
+            </div>
+
+        </div>
+    </main>
+
+    <%- include('../partials/sidebar') %>
+    <%- include('../partials/footer') %>
+    <%- include('../partials/initial-state') %>
+    <script type="module" defer src="/assets/js/carrito.js"></script>
+    <script type="module" defer src="/assets/js/producto.js"></script>
 </body>
+</html>
