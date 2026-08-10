@@ -1,31 +1,65 @@
 <%
-var cantidad = 0;
-
-if (typeof carrito !== 'undefined' && Array.isArray(carrito) && carrito.length > 0){
-    for (p of carrito){
-        cantidad+=p.cantidad
-    }
-}
-
+const usuarioAutenticado = typeof user !== 'undefined' && Boolean(user);
+const cantidadCarrito = typeof carrito !== 'undefined' && Array.isArray(carrito)
+    ? carrito.reduce((total, productoCarrito) => {
+        const cantidadProducto = Number.parseInt(productoCarrito.cantidad, 10);
+        return total + (Number.isFinite(cantidadProducto) ? cantidadProducto : 0);
+    }, 0)
+    : 0;
 %>
-<nav>
-    <ul>
-        <li><a href="<%= url('/productos') %>">Productos</a></li>
-        <% if (user) { %>
-        <li>
-            <form method="post" action="<%= url('/logout') %>">
-                <input type="hidden" name="csrf_token" value="<%= typeof csrf_token !== 'undefined' ? csrf_token : '' %>">
-                <button class="btn btn-primary" type="submit">Cerrar sesion</button>
-            </form>
-        </li>
-        <% } else { %>
-        <li><a href="<%= url('/login') %>"><button type="button" class="btn btn-primary">Iniciar sesion</button></a></li>
-        <% } %>
-        <li><button id="btn-carrito"
-                    class="btn btn-primary btn-sm"
-                    type="button"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#offcanvasRight"
-                    aria-controls="offcanvasRight">Carrito <span id="carrito-cantidad"><%= cantidad %></span></button></li>
-    </ul>
-</nav>
+
+<header class="products-header sticky-top w-100 border-bottom">
+    <div class="products-navbar d-flex justify-content-between align-items-center w-100 mx-auto">
+
+        <a class="products-brand text-decoration-none" href="<%= url('/productos') %>">
+            Retroka
+        </a>
+
+        <nav class="d-none d-md-flex align-items-center gap-4" aria-label="Navegación principal">
+            <a
+                class="products-nav-link products-nav-link-active text-decoration-none"
+                href="<%= url('/productos') %>"
+                aria-current="page"
+            >
+                Productos
+            </a>
+        </nav>
+
+        <div class="products-navbar-actions d-flex align-items-center gap-3">
+
+            <% if (usuarioAutenticado) { %>
+                <form class="navbar-session-form" method="post" action="<%= url('/logout') %>">
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<%= typeof csrf_token !== 'undefined' ? csrf_token : '' %>"
+                    >
+                    <button class="login-button" type="submit">
+                        Cerrar sesión
+                    </button>
+                </form>
+            <% } else { %>
+                <a class="login-button text-decoration-none" href="<%= url('/login') %>">
+                    Iniciar sesión
+                </a>
+            <% } %>
+
+            <button
+                id="btn-carrito"
+                class="cart-toggle-button position-relative d-flex align-items-center justify-content-center"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#offcanvasRight"
+                aria-controls="offcanvasRight"
+                aria-label="Abrir carrito: <%= cantidadCarrito %> producto<%= cantidadCarrito === 1 ? '' : 's' %>"
+            >
+                <svg class="cart-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M7 8V6a5 5 0 0 1 10 0v2h3v14H4V8h3Zm2 0h6V6a3 3 0 0 0-6 0v2Zm-3 2v10h12V10H6Z"></path>
+                </svg>
+                <span id="carrito-cantidad" class="cart-count" aria-hidden="true"><%= cantidadCarrito %></span>
+            </button>
+
+        </div>
+
+    </div>
+</header>

@@ -7,7 +7,9 @@ export class ProductModel{
 
     async getAll(){
         const [rows] = await pool.execute(
-            `SELECT * FROM ${this.#table};`
+            `SELECT p.*, c.nombre AS categoria_producto
+            FROM ${this.#table} p
+            LEFT JOIN categorias c ON p.categoria = c.id;`
         );
 
         return rows;
@@ -15,8 +17,8 @@ export class ProductModel{
 
     async findByID(id){
         const [row] = await pool.execute(
-            `SELECT *, c.nombre categoria_producto FROM ${this.#table} p 
-            JOIN categorias c
+            `SELECT p.*, c.nombre AS categoria_producto FROM ${this.#table} p
+            LEFT JOIN categorias c
             ON p.categoria = c.id
             WHERE p.id = ?;`,[id]
         );

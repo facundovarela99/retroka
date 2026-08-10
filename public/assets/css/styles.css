@@ -1031,3 +1031,963 @@
     }
 
 }
+
+/* ========================================
+   RETROKA - PRODUCTOS
+======================================== */
+
+:root {
+    --retroka-primary: #000000;
+    --retroka-on-primary: #ffffff;
+
+    --retroka-surface: #fbf8ff;
+    --retroka-surface-variant: #e3e1ec;
+
+    --retroka-surface-container-high: #e8e7f1;
+
+    --retroka-on-surface: #1a1b22;
+    --retroka-on-surface-variant: #444748;
+
+    --retroka-outline: #747878;
+    --retroka-outline-variant: #c4c7c7;
+
+    --retroka-secondary: #516259;
+    --retroka-on-secondary: #ffffff;
+
+    --retroka-tertiary: #000000;
+}
+
+
+/* ========================================
+   GENERAL
+======================================== */
+
+#body-productos {
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--retroka-surface);
+
+    color: var(--retroka-on-surface);
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 16px;
+    line-height: 1.6;
+
+    font-weight: 400;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    overflow-x: hidden;
+}
+
+
+/* ========================================
+   NAVBAR
+======================================== */
+
+.products-header {
+    z-index: 50;
+
+    background-color: rgba(251, 248, 255, 0.96);
+
+    border-color: var(--retroka-outline-variant) !important;
+
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+
+.products-navbar {
+    max-width: 1440px;
+
+    min-height: 64px;
+    height: clamp(64px, 10vh, 80px);
+
+    padding-right: clamp(16px, 5vw, 64px);
+    padding-left: clamp(16px, 5vw, 64px);
+}
+
+
+.products-brand {
+    display: inline-flex;
+    align-items: center;
+
+    font-family: "Montserrat", sans-serif;
+
+    font-size: 24px;
+    line-height: 1.3;
+
+    font-weight: 700;
+
+    letter-spacing: -0.02em;
+
+    color: var(--retroka-primary);
+}
+
+
+.products-brand:hover,
+.products-brand:focus {
+    color: var(--retroka-primary);
+}
+
+
+/* Navigation link */
+
+.products-nav-link {
+    padding-bottom: 4px;
+
+    font-family: "Montserrat", sans-serif;
+
+    font-size: 16px;
+
+    color: var(--retroka-primary);
+
+    transition: opacity 0.2s ease;
+}
+
+
+.products-nav-link:hover {
+    color: var(--retroka-primary);
+
+    opacity: 0.8;
+}
+
+
+.products-nav-link-active {
+    border-bottom: 2px solid var(--retroka-primary);
+}
+
+
+.products-brand:focus-visible,
+.products-nav-link:focus-visible,
+.login-button:focus-visible,
+.cart-toggle-button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+}
+
+
+/* Login */
+
+.login-button {
+    min-height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+
+    padding: 8px 0;
+
+    background: transparent;
+
+    border: 0;
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.05em;
+
+    color: var(--retroka-primary);
+
+    appearance: none;
+    cursor: pointer;
+    white-space: nowrap;
+
+    transition: opacity 0.2s ease;
+}
+
+
+.login-button:hover {
+    color: var(--retroka-primary);
+
+    opacity: 0.8;
+}
+
+
+.navbar-session-form {
+    margin: 0;
+}
+
+
+/* Cart icon */
+
+.cart-toggle-button {
+    width: 44px;
+    height: 44px;
+
+    padding: 0;
+
+    background: transparent;
+
+    border: 0;
+
+    color: var(--retroka-primary);
+
+    appearance: none;
+    cursor: pointer;
+
+    transition: opacity 0.2s ease;
+}
+
+
+.cart-toggle-button:hover {
+    opacity: 0.8;
+}
+
+
+.cart-toggle-icon {
+    width: 24px;
+    height: 24px;
+
+    display: block;
+
+    fill: currentColor;
+}
+
+
+.cart-count {
+    position: absolute;
+    top: 0;
+    right: -2px;
+
+    min-width: 18px;
+    height: 18px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 4px;
+
+    background-color: var(--retroka-primary);
+    color: var(--retroka-on-primary);
+
+    border: 2px solid var(--retroka-surface);
+    border-radius: 999px;
+
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 600;
+}
+
+
+.products-navbar-actions {
+    flex-shrink: 0;
+}
+
+
+/* ========================================
+   MAIN
+======================================== */
+
+.products-main {
+    flex: 1;
+
+    max-width: 1440px;
+
+    padding: clamp(32px, 5vw, 64px) clamp(16px, 5vw, 64px);
+}
+
+
+/* ========================================
+   PAGE HEADING
+======================================== */
+
+.products-heading {
+    margin-bottom: clamp(32px, 5vw, 48px);
+}
+
+
+.products-title {
+    font-family: "Montserrat", sans-serif;
+
+    font-size: clamp(30px, 4vw, 40px);
+    line-height: 1.2;
+
+    font-weight: 600;
+
+    color: var(--retroka-primary);
+}
+
+
+.products-subtitle {
+    margin-top: 8px;
+
+    font-size: 16px;
+    line-height: 1.6;
+
+    color: var(--retroka-on-surface-variant);
+}
+
+
+/* Filters */
+
+.products-control-button {
+    padding: 8px 16px;
+
+    background-color: transparent;
+
+    border: 1px solid var(--retroka-outline-variant);
+
+    border-radius: 2px;
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.05em;
+
+    color: var(--retroka-on-surface);
+
+    appearance: none;
+    cursor: pointer;
+
+    transition: background-color 0.2s ease;
+}
+
+
+.products-control-button:hover {
+    background-color: var(--retroka-surface-variant);
+}
+
+
+/* ========================================
+   PRODUCT CARDS
+======================================== */
+
+.product-card {
+    background-color: var(--retroka-surface);
+
+    border: 1px solid var(--retroka-outline-variant);
+
+    border-radius: 2px;
+
+    transition: box-shadow 0.3s ease;
+}
+
+
+.product-card:hover {
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+
+/* ========================================
+   PRODUCT IMAGE
+======================================== */
+
+.product-image-container {
+    aspect-ratio: 3 / 4;
+
+    background-color: var(--retroka-surface-variant);
+}
+
+
+.product-image {
+    display: block;
+
+    object-fit: cover;
+
+    transition: transform 0.5s ease;
+}
+
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+
+.product-image-placeholder,
+.product-card:hover .product-image-placeholder {
+    padding: clamp(24px, 5vw, 56px);
+
+    object-fit: contain;
+
+    transform: none;
+}
+
+
+.product-image-link:focus-visible {
+    outline: 3px solid var(--retroka-primary);
+    outline-offset: -3px;
+}
+
+
+/* Product Badges */
+
+.product-badge {
+    top: 8px;
+    right: 8px;
+
+    padding: 4px 8px;
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.05em;
+}
+
+
+.product-badge-new {
+    background-color: var(--retroka-primary);
+
+    color: var(--retroka-on-primary);
+}
+
+
+.product-badge-restock {
+    background-color: var(--retroka-secondary);
+
+    color: var(--retroka-on-secondary);
+}
+
+
+/* ========================================
+   PRODUCT INFORMATION
+======================================== */
+
+.product-content {
+    padding: 16px;
+
+    background-color: var(--retroka-surface);
+}
+
+
+.product-category {
+    margin-bottom: 4px;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.05em;
+
+    color: var(--retroka-on-surface-variant);
+}
+
+
+.product-name {
+    margin-bottom: 8px;
+
+    font-family: "Montserrat", sans-serif;
+
+    font-size: 18px;
+    line-height: 1.25;
+
+    font-weight: 600;
+
+    color: var(--retroka-primary);
+}
+
+
+.product-name-link {
+    color: inherit;
+}
+
+
+.product-name-link:hover {
+    color: var(--retroka-on-surface-variant);
+}
+
+
+.product-name-link:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+
+.product-description {
+    margin-bottom: 16px;
+
+    display: -webkit-box;
+
+    overflow: hidden;
+
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 14px;
+    line-height: 1.6;
+
+    color: var(--retroka-on-surface-variant);
+}
+
+
+.product-price {
+    font-size: 18px;
+    line-height: 1.6;
+
+    font-weight: 500;
+
+    color: var(--retroka-primary);
+
+    white-space: nowrap;
+}
+
+
+/* ========================================
+   ADD TO CART BUTTON
+======================================== */
+
+.add-cart-button {
+    padding: 8px 16px;
+
+    background-color: var(--retroka-primary);
+
+    border: 0;
+    border-radius: 2px;
+
+    color: var(--retroka-on-primary);
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1.2;
+
+    font-weight: 600;
+
+    letter-spacing: 0.05em;
+
+    appearance: none;
+    cursor: pointer;
+
+    transition: background-color 0.2s ease;
+}
+
+
+.add-cart-button:hover {
+    background-color: var(--retroka-on-surface-variant);
+}
+
+
+.add-cart-button:focus-visible {
+    outline: 2px solid var(--retroka-primary);
+    outline-offset: 3px;
+}
+
+
+.add-cart-button:disabled {
+    background-color: var(--retroka-outline);
+
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+
+/* ========================================
+   EMPTY STATE
+======================================== */
+
+.products-empty {
+    max-width: 480px;
+
+    margin: 0 auto;
+    padding: clamp(32px, 6vw, 64px);
+
+    background-color: var(--retroka-surface);
+
+    border: 1px solid var(--retroka-outline-variant);
+}
+
+
+.products-empty-image {
+    width: min(180px, 50vw);
+    aspect-ratio: 3 / 4;
+
+    margin-bottom: 24px;
+
+    object-fit: contain;
+}
+
+
+.products-empty-title {
+    margin-bottom: 8px;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 24px;
+    line-height: 1.3;
+    font-weight: 600;
+}
+
+
+.products-empty-description {
+    color: var(--retroka-on-surface-variant);
+}
+
+
+/* ========================================
+   SIDE CART
+======================================== */
+
+.side-cart {
+    z-index: 100;
+
+    width: 400px;
+
+    max-width: 100%;
+
+    background-color: var(--retroka-surface);
+
+    color: var(--retroka-primary);
+
+    transform: translateX(100%);
+
+    visibility: hidden;
+
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.08),
+        0 10px 15px rgba(0, 0, 0, 0.08);
+
+    transition:
+        transform 0.3s ease-in-out,
+        visibility 0.3s ease-in-out;
+}
+
+
+.side-cart.cart-open {
+    transform: translateX(0);
+
+    visibility: visible;
+}
+
+
+.side-cart-content {
+    padding: 24px;
+}
+
+
+/* ========================================
+   CART HEADER
+======================================== */
+
+.cart-header {
+    margin-bottom: 32px;
+
+    padding-bottom: 16px;
+
+    border-color: var(--retroka-outline-variant) !important;
+}
+
+
+.cart-title {
+    font-family: "Montserrat", sans-serif;
+
+    font-size: 24px;
+    line-height: 1.3;
+
+    font-weight: 600;
+
+    color: var(--retroka-primary);
+}
+
+
+.cart-subtitle {
+    margin-top: 4px;
+
+    font-size: 14px;
+    line-height: 1.6;
+
+    color: var(--retroka-on-surface-variant);
+}
+
+
+/* Close Button */
+
+.close-cart-button {
+    width: 40px;
+    height: 40px;
+
+    padding: 8px;
+
+    background: transparent;
+
+    border: 0;
+    border-radius: 50%;
+
+    color: var(--retroka-primary);
+
+    cursor: pointer;
+
+    transition: background-color 0.2s ease;
+}
+
+
+.close-cart-button:hover {
+    background-color: var(--retroka-surface-variant);
+}
+
+
+/* ========================================
+   EMPTY CART
+======================================== */
+
+.cart-empty-icon {
+    margin-bottom: 16px;
+
+    font-size: 64px;
+
+    color: var(--retroka-on-surface-variant);
+
+    opacity: 0.5;
+}
+
+
+.cart-empty-title {
+    margin-bottom: 8px;
+
+    font-size: 18px;
+    line-height: 1.6;
+
+    color: var(--retroka-primary);
+}
+
+
+.cart-empty-description {
+    max-width: 250px;
+
+    margin-bottom: 0;
+
+    font-size: 16px;
+    line-height: 1.6;
+
+    color: var(--retroka-on-surface-variant);
+}
+
+
+/* Shop Arrivals */
+
+.shop-arrivals-button {
+    margin-top: 32px;
+
+    padding: 12px 24px;
+
+    background-color: transparent;
+
+    border: 1px solid var(--retroka-primary);
+    border-radius: 2px;
+
+    color: var(--retroka-primary);
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.1em;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.shop-arrivals-button:hover {
+    background-color: var(--retroka-primary);
+
+    color: var(--retroka-on-primary);
+}
+
+
+/* ========================================
+   CART FOOTER
+======================================== */
+
+.cart-footer {
+    padding-top: 24px;
+
+    border-color: var(--retroka-outline-variant) !important;
+}
+
+
+.cart-subtotal {
+    margin-bottom: 24px;
+
+    font-size: 18px;
+    line-height: 1.6;
+
+    font-weight: 500;
+
+    color: var(--retroka-primary);
+}
+
+
+.checkout-button {
+    height: 56px;
+
+    background-color: var(--retroka-primary);
+
+    border: 0;
+    border-radius: 2px;
+
+    color: var(--retroka-on-primary);
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.1em;
+
+    opacity: 0.5;
+}
+
+
+.checkout-button:disabled {
+    cursor: not-allowed;
+}
+
+
+/* Footer links */
+
+.cart-footer-links {
+    gap: 24px;
+
+    margin-top: 24px;
+}
+
+
+.cart-footer-link {
+    gap: 4px;
+
+    color: var(--retroka-on-surface-variant);
+
+    font-family: "Inter", sans-serif;
+
+    font-size: 12px;
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: 0.05em;
+
+    transition: color 0.2s ease;
+}
+
+
+.cart-footer-link:hover {
+    color: var(--retroka-primary);
+}
+
+
+/* ========================================
+   CART BACKDROP
+======================================== */
+
+.cart-backdrop {
+    z-index: 90;
+
+    background-color: rgba(0, 0, 0, 0.2);
+
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+
+    visibility: hidden;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
+}
+
+
+.cart-backdrop.backdrop-visible {
+    visibility: visible;
+
+    opacity: 1;
+
+    pointer-events: auto;
+}
+
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (min-width: 768px) {
+    .products-title {
+        font-size: clamp(32px, 3.5vw, 40px);
+        line-height: 1.2;
+
+        letter-spacing: -0.01em;
+    }
+
+}
+
+
+@media (max-width: 767.98px) {
+
+    .side-cart {
+        width: 100%;
+    }
+
+
+    .products-heading {
+        align-items: flex-start !important;
+    }
+
+
+    .product-name {
+        font-size: 18px;
+    }
+
+}
+
+
+/* ========================================
+   SMALL MOBILE
+======================================== */
+
+@media (max-width: 420px) {
+
+    .product-content > .mt-auto {
+        align-items: flex-start !important;
+
+        flex-direction: column;
+    }
+
+
+    .add-cart-button {
+        width: 100%;
+    }
+
+
+    .products-navbar-actions {
+        gap: 8px !important;
+    }
+
+
+    .login-button {
+        font-size: 11px;
+    }
+
+}

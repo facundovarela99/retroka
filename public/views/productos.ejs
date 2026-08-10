@@ -1,53 +1,144 @@
+<%
+const esAdministrador = Boolean(user?.is_admin);
+const productosDisponibles = Array.isArray(productos) ? productos : [];
+const productosVisibles = esAdministrador
+    ? productosDisponibles
+    : productosDisponibles.filter((producto) => producto.categoria !== null && producto.categoria !== undefined);
+const imagenGenerica = '/assets/img/product-placeholder.svg';
 
-<% 
+const obtenerImagenProducto = (producto) => {
+    const candidatos = [producto.imagen, producto.url];
+    const imagen = candidatos.find((valor) => {
+        if (typeof valor !== 'string' || valor.trim().length === 0) return false;
 
-const productos_sin_categoria = []; 
+        const referencia = valor.trim();
+        return /^(?:https?:\/\/|\/|data:image\/)/i.test(referencia)
+            || /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i.test(referencia);
+    });
 
-productos.forEach((producto)=>{
-    if (producto.categoria === null){
-        productos_sin_categoria.push(producto);
-    }
-})
-
+    return imagen ? imagen.trim() : imagenGenerica;
+};
 %>
 <!DOCTYPE html>
 <html lang="es">
 <%- include('../partials/meta') %>
-<body>
+<body id="body-productos">
+
     <%- include('../partials/navbar') %>
-    <% if (productos.length > 0 && productos.length > productos_sin_categoria.length || user.is_admin) { %>
-        <section id="productos">
-            <ul>
-               <% productos.forEach(function(producto) { %>
-                    <% if (producto.categoria) { %>
-                        <li class="producto">
-                            <div>
-                                <p><%= producto.nombre %></p>
-                                <p><%= producto.descripcion %></p>
-                                <p><%= producto.precio %></p>
-                                <p><%= producto.stock %></p>
-                                <% if (producto.categoria){ %>
-                                    <p><%= producto.categoria %></p>
-                                <% } else { %>
-                                    <p>Sin categoría</p>
-                                <% } %>
-                                <% if (user && user.is_admin === true){ %>
-                                    <a href="<%= url('/producto/'+producto.id) %>">Editar</a>
-                                <% } else { %>
-                                    <a href="<%= url('/producto/'+producto.id) %>">Ver</a>
-                                <% } %>
-                                <button type="button" class="btn-agregar-al-carrito" data-producto='<%- JSON.stringify(producto) %>'>Agregar al carro</button>
-                            </div>
-                        </li>
-                    <% } %>
-               <% }) %>
-            </ul>
+
+    <main class="products-main w-100 mx-auto">
+
+        <header class="products-heading d-flex justify-content-between align-items-end">
+            <div>
+                <h1 id="products-title" class="products-title mb-0">
+                    New Arrivals
+                </h1>
+
+                <p class="products-subtitle mb-0">
+                    Latest drops in urban streetwear.
+                </p>
+            </div>
+
+            <div class="d-none d-md-flex gap-2" aria-label="Controles de productos">
+                <button class="products-control-button" type="button">
+                    Filtros
+                </button>
+
+                <button class="products-control-button" type="button">
+                    Ordenar: recientes
+                </button>
+            </div>
+        </header>
+
+        <section aria-labelledby="products-title">
+            <% if (productosVisibles.length > 0) { %>
+                <div class="row g-4" role="list">
+                    <% productosVisibles.forEach((producto) => { %>
+                        <%
+                        const imagenProducto = obtenerImagenProducto(producto);
+                        const usaImagenGenerica = imagenProducto === imagenGenerica;
+                        const categoriaProducto = producto.categoria_producto || producto.categoria || 'Sin categoría';
+                        const productoSinStock = Number.parseInt(producto.stock, 10) <= 0;
+                        %>
+                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3" role="listitem">
+                            <article
+                                class="product-card d-flex flex-column h-100 overflow-hidden"
+                                aria-labelledby="product-name-<%= producto.id %>"
+                            >
+
+                                <a
+                                    class="product-image-link d-block text-decoration-none"
+                                    href="<%= url('/producto/' + producto.id) %>"
+                                    aria-label="<%= esAdministrador ? 'Editar' : 'Ver' %> <%= producto.nombre %>"
+                                >
+                                    <div class="product-image-container position-relative overflow-hidden">
+                                        <img
+                                            class="product-image w-100 h-100<%= usaImagenGenerica ? ' product-image-placeholder' : '' %>"
+                                            src="<%= imagenProducto %>"
+                                            alt="<%= usaImagenGenerica ? 'Producto sin imagen: ' : '' %><%= producto.nombre %>"
+                                            loading="lazy"
+                                            decoding="async"
+                                            onerror="this.onerror=null;this.src='<%= imagenGenerica %>';this.classList.add('product-image-placeholder')"
+                                        >
+
+                                        <% if (esAdministrador) { %>
+                                            <span class="product-badge product-badge-new position-absolute">
+                                                Editar
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                </a>
+
+                                <div class="product-content d-flex flex-column flex-grow-1">
+                                    <div class="product-category text-uppercase">
+                                        <%= categoriaProducto %>
+                                    </div>
+
+                                    <h2 id="product-name-<%= producto.id %>" class="product-name">
+                                        <a class="product-name-link text-decoration-none" href="<%= url('/producto/' + producto.id) %>">
+                                            <%= producto.nombre %>
+                                        </a>
+                                    </h2>
+
+                                    <p class="product-description">
+                                        <%= producto.descripcion %>
+                                    </p>
+
+                                    <div class="product-actions mt-auto d-flex align-items-center justify-content-between gap-3">
+                                        <span class="product-price">
+                                            $<%= producto.precio %>
+                                        </span>
+
+                                        <button
+                                            class="add-cart-button btn-agregar-al-carrito"
+                                            type="button"
+                                            data-producto="<%= JSON.stringify(producto) %>"
+                                            <%= productoSinStock ? 'disabled' : '' %>
+                                        >
+                                            <%= productoSinStock ? 'Sin stock' : 'Agregar al carro' %>
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </article>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } else { %>
+                <div class="products-empty text-center" role="status">
+                    <img class="products-empty-image" src="<%= imagenGenerica %>" alt="" aria-hidden="true">
+                    <h2 class="products-empty-title">No hay productos disponibles</h2>
+                    <p class="products-empty-description mb-0">
+                        Volvé pronto para conocer los próximos ingresos.
+                    </p>
+                </div>
+            <% } %>
         </section>
-    <% } else { %>
-        <h1>No existen productos</h1>
-    <% } %>
-<%- include('../partials/sidebar') %>
-<%- include('../partials/initial-state') %>
-<script type="module" defer src="/assets/js/carrito.js"></script>
+
+    </main>
+
+    <%- include('../partials/sidebar') %>
+    <%- include('../partials/initial-state') %>
+    <script type="module" defer src="/assets/js/carrito.js"></script>
 </body>
 </html>
