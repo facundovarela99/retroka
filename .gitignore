@@ -7,3 +7,6 @@ node_modules/
 
 .codex/
 .agents/
+
+public/uploads/*
+!public/uploads/.gitkeep

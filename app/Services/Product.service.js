@@ -3,13 +3,25 @@ import { AppError } from '../Models/Error.model.js';
 import {
     stringCapitalizado, 
     stringCapitalizadoOpcional, 
-    stringEnMayuscula, 
     stringEnMayusculaOpcional,
     numeroConDefault,
-    numeroOpcional, 
-    stringOpcional,
+    numeroRequerido,
+    numeroOpcional,
     stringOpcionalActualizacion
 } from '../Helpers.js';
+
+const MAX_PRODUCT_IMAGES = 8;
+
+const productImageUrlSchema = zod.string({
+    invalid_type_error: 'Cada imagen debe ser una URL valida'
+})
+    .trim()
+    .min(1, { message: 'La URL de la imagen no puede estar vacia' })
+    .max(255, { message: 'La URL de la imagen es demasiado larga' })
+    .regex(
+        /^\/uploads\/[1-9]\d*\/[a-f0-9-]+\.(?:gif|jpe?g|png|svg)$/i,
+        { message: 'La URL de la imagen no pertenece al directorio de productos' }
+    );
 
 
 const newProductSchema = zod.object({
@@ -21,24 +33,28 @@ const newProductSchema = zod.object({
         invalid_type_error: 'La descripcion de debe ser una cadena de caracteres.',
         required_error: 'La descripcion es obligatorio'
     }), 'La descripcion es obligatoria'),
-    talle: stringEnMayuscula(zod.string({
-        invalid_type_error: 'El talle de debe ser una cadena de caracteres.',
-        required_error: 'El talle es obligatorio'
-    }), 'El talle debe tener al menos un caracter'),
+    talle: numeroRequerido(
+        zod.number().int().positive(),
+        'El talle es obligatorio',
+        'El talle debe ser un numero valido'
+    ),
     stock: numeroConDefault(zod.number({
-        invalid_type_error: 'El stock debe ser un número no decimal',
+        invalid_type_error: 'El stock debe ser un numero entero',
         required_error: 'El stock es obligatorio'
-    })),
+    }).int().min(0, { message: 'El stock no puede ser negativo' })),
     precio: numeroConDefault(zod.number({
-        invalid_type_error: 'El precio debe ser un número no decimal',
+        invalid_type_error: 'El precio debe ser un numero',
         required_error: 'El precio es obligatorio'
-    })),
-    imagen: stringOpcional(zod.string({invalid_type_error: 'La imagen debe ser una cadena de caracteres'})),
-    url: stringOpcional(zod.string({invalid_type_error: 'La url debe ser una cadena de caracteres'})),
+    }).min(0, { message: 'El precio no puede ser negativo' })),
+    imagenes: zod.array(productImageUrlSchema, {
+        invalid_type_error: 'Las imagenes deben ser un arreglo de URLs'
+    })
+        .max(MAX_PRODUCT_IMAGES, { message: `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes` })
+        .default([]),
     categoria: numeroOpcional(zod.number({
         invalid_type_error: 'La categoría debe ser un número',
         required_error: 'La categoría es obligatoria'
-    }), 'La categoría debe ser un número')
+    }).int().positive(), 'La categoría debe ser un número')
 });
 
 const updatedProductSchema = zod.object({

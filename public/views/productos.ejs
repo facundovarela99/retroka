@@ -7,7 +7,7 @@ const productosVisibles = esAdministrador
 const imagenGenerica = '/assets/img/product-placeholder.svg';
 
 const obtenerImagenProducto = (producto) => {
-    const candidatos = [producto.imagen, producto.url];
+    const candidatos = [producto.imagen_archivo, producto.imagen, producto.url];
     const imagen = candidatos.find((valor) => {
         if (typeof valor !== 'string' || valor.trim().length === 0) return false;
 
@@ -27,6 +27,15 @@ const obtenerImagenProducto = (producto) => {
     <%- include('../partials/navbar') %>
 
     <main class="products-main w-100 mx-auto">
+
+        <% if (product_message?.message) { %>
+            <div
+                class="alert <%= product_message.type === 'success' ? 'alert-success' : 'alert-danger' %>"
+                role="status"
+            >
+                <%= product_message.message %>
+            </div>
+        <% } %>
 
         <header class="products-heading d-flex justify-content-between align-items-end">
             <div>

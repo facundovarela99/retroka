@@ -6,7 +6,7 @@ const variantesProducto = Array.isArray(variantes) && variantes.length > 0
 const imagenGenerica = '/assets/img/product-placeholder.svg';
 
 const obtenerImagenProducto = (item) => {
-    const candidatos = [item.url, item.imagen];
+    const candidatos = [item.imagen_archivo, item.url, item.imagen];
     const imagen = candidatos.find((valor) => {
         if (typeof valor !== 'string' || valor.trim().length === 0) return false;
 
