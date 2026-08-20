@@ -145,9 +145,9 @@ const formatearPrecio = (valor) => {
                     <section class="mt-4" aria-labelledby="product-variants-title">
                         <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
                             <h2 id="product-variants-title" class="fs-5 mb-0">Variantes</h2>
-                            <a class="btn btn-sm btn-outline-primary" href="<%= url('/admin/productos/nuevo') %>">
+                            <a class="btn btn-sm btn-outline-primary" href="<%= url('/admin/productos/' + producto.id + '/variantes/nueva') %>">
                                 <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
-                                Nuevo producto
+                                Nueva variante
                             </a>
                         </div>
 
@@ -175,6 +175,27 @@ const formatearPrecio = (valor) => {
                                                     <span class="text-body-secondary">Precio</span>
                                                     <strong>$<%= formatearPrecio(variante.precio) %></strong>
                                                 </div>
+                                            </div>
+                                            <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
+                                                <a
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    href="<%= url('/admin/productos/' + producto.id + '/variantes/' + variante.variante_id + '/editar') %>"
+                                                >
+                                                    <i class="bi bi-pencil me-1" aria-hidden="true"></i>
+                                                    Editar
+                                                </a>
+                                                <form
+                                                    method="post"
+                                                    action="<%= url('/admin/productos/' + producto.id + '/variantes/' + variante.variante_id + '/eliminar') %>"
+                                                >
+                                                    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                                                    <input type="hidden" name="producto_id" value="<%= producto.id %>">
+                                                    <input type="hidden" name="variante_id" value="<%= variante.variante_id %>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="bi bi-trash me-1" aria-hidden="true"></i>
+                                                        Eliminar
+                                                    </button>
+                                                </form>
                                             </div>
                                         </article>
                                     </div>

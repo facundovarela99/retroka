@@ -1,0 +1,174 @@
+<%
+const datosFormulario = typeof form_data !== 'undefined' && form_data ? form_data : {};
+const tallesActivos = new Set(
+    (Array.isArray(variantes) ? variantes : []).map((variante) => String(variante.talle_id))
+);
+const talleSeleccionado = String(datosFormulario.talle || '');
+const imagenProducto = producto.imagen_archivo || '/assets/img/product-placeholder.svg';
+const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String(talle.id)));
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../../partials/admin/admin-navbar') %>
+        <%- include('../../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center gy-2">
+                        <div class="col-sm-7">
+                            <h1 class="mb-0 fs-3">Nueva variante</h1>
+                        </div>
+                        <div class="col-sm-5">
+                            <ol class="breadcrumb float-sm-end mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="<%= url('/admin/productos') %>">Productos</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a href="<%= url('/admin/productos/' + producto.id) %>"><%= producto.nombre %></a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Nueva variante</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid pb-4">
+                    <%- include('../../../partials/admin/product-message') %>
+
+                    <div class="row justify-content-center g-4">
+                        <div class="col-12 col-lg-4 col-xl-3">
+                            <aside class="card h-100" aria-labelledby="variant-product-title">
+                                <div class="ratio ratio-4x3 bg-body-secondary rounded-top overflow-hidden">
+                                    <img
+                                        class="w-100 h-100 object-fit-contain"
+                                        src="<%= imagenProducto %>"
+                                        alt="<%= producto.imagen_archivo ? producto.nombre : 'Producto sin imagen' %>"
+                                    >
+                                </div>
+                                <div class="card-body">
+                                    <h2 id="variant-product-title" class="fs-5"><%= producto.nombre %></h2>
+                                    <p class="text-body-secondary mb-0">
+                                        La variante utilizará las imágenes y la información general de este producto.
+                                    </p>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <div class="col-12 col-lg-8 col-xl-6">
+                            <form
+                                id="form-create-variant"
+                                method="post"
+                                action="<%= url('/admin/productos/' + producto.id + '/variantes') %>"
+                            >
+                                <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                                <input type="hidden" name="producto_id" value="<%= producto.id %>">
+
+                                <section class="card card-primary card-outline" aria-labelledby="variant-fields-title">
+                                    <div class="card-header">
+                                        <h2 id="variant-fields-title" class="card-title">Datos de la variante</h2>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <% if (!quedanTallesDisponibles) { %>
+                                            <div class="alert alert-info" role="status">
+                                                El producto ya posee una variante activa para cada talle disponible.
+                                            </div>
+                                        <% } %>
+
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label for="variant-size" class="form-label">Talle</label>
+                                                <select
+                                                    name="talle"
+                                                    class="form-select"
+                                                    id="variant-size"
+                                                    required
+                                                    <%= quedanTallesDisponibles ? '' : 'disabled' %>
+                                                >
+                                                    <option value="" disabled <%= talleSeleccionado ? '' : 'selected' %>>
+                                                        Seleccionar talle
+                                                    </option>
+                                                    <% talles.forEach((talle) => { %>
+                                                        <%
+                                                        const talleActivo = tallesActivos.has(String(talle.id));
+                                                        const estaSeleccionado = talleSeleccionado === String(talle.id);
+                                                        %>
+                                                        <option
+                                                            value="<%= talle.id %>"
+                                                            <%= estaSeleccionado ? 'selected' : '' %>
+                                                            <%= talleActivo ? 'disabled' : '' %>
+                                                        >
+                                                            <%= talle.tipo %><%= talleActivo ? ' — ya agregado' : '' %>
+                                                        </option>
+                                                    <% }) %>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-12 col-sm-6">
+                                                <label for="variant-stock" class="form-label">Stock</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">
+                                                        <i class="bi bi-boxes" aria-hidden="true"></i>
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        name="stock"
+                                                        class="form-control"
+                                                        id="variant-stock"
+                                                        min="0"
+                                                        step="1"
+                                                        value="<%= datosFormulario.stock ?? 0 %>"
+                                                        required
+                                                    >
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-6">
+                                                <label for="variant-price" class="form-label">Precio</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input
+                                                        type="number"
+                                                        name="precio"
+                                                        class="form-control"
+                                                        id="variant-price"
+                                                        min="0"
+                                                        max="99999999.99"
+                                                        step="0.01"
+                                                        value="<%= datosFormulario.precio ?? producto.precio %>"
+                                                        required
+                                                    >
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
+                                        <a class="btn btn-outline-secondary" href="<%= url('/admin/productos/' + producto.id) %>">
+                                            Cancelar
+                                        </a>
+                                        <button type="submit" class="btn btn-primary" <%= quedanTallesDisponibles ? '' : 'disabled' %>>
+                                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                            Crear variante
+                                        </button>
+                                    </div>
+                                </section>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../../partials/admin/admin-scripts') %>
+</body>
+</html>

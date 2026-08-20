@@ -1,8 +1,14 @@
 <%
-const talles = ['S', 'M', 'L', 'XL'];
 const variantesProducto = Array.isArray(variantes) && variantes.length > 0
     ? variantes
     : [producto];
+const tallesBase = ['S', 'M', 'L', 'XL'];
+const talles = [...new Set([
+    ...tallesBase,
+    ...variantesProducto
+        .map((variante) => String(variante.talle || '').trim().toUpperCase())
+        .filter(Boolean)
+])];
 const imagenGenerica = '/assets/img/product-placeholder.svg';
 
 const obtenerImagenProducto = (item) => {

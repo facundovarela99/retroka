@@ -37,6 +37,15 @@ router.post('/admin/productos/actualizar', requireAuth, isAdmin, uploadProductIm
 router.patch('/admin/productos/actualizar', requireAuth, isAdmin, uploadProductImages, handleProductUploadError, adminProductController.update.bind(adminProductController));
 router.post('/admin/productos/eliminar', requireAuth, isAdmin, requireCsrf, adminProductController.delete.bind(adminProductController));
 
+//Variantes
+router.get('/admin/productos/:productId/variantes/nueva', requireAuth, isAdmin, adminProductController.createVariant.bind(adminProductController));
+router.post('/admin/productos/:productId/variantes', requireAuth, isAdmin, adminProductController.storeVariant.bind(adminProductController));
+router.get('/admin/productos/:productId/variantes/:variantId/editar', requireAuth, isAdmin, adminProductController.editVariant.bind(adminProductController));
+router.post('/admin/productos/:productId/variantes/:variantId', requireAuth, isAdmin, adminProductController.updateVariant.bind(adminProductController));
+router.patch('/admin/productos/:productId/variantes/:variantId', requireAuth, isAdmin, adminProductController.updateVariant.bind(adminProductController));
+router.post('/admin/productos/:productId/variantes/:variantId/eliminar', requireAuth, isAdmin, adminProductController.deleteVariant.bind(adminProductController));
+router.delete('/admin/productos/:productId/variantes/:variantId', requireAuth, isAdmin, adminProductController.deleteVariant.bind(adminProductController));
+
 //       -------------RUTAS SITIO-------------       //
 
 router.get('/', siteProductController.getAll.bind(siteProductController));

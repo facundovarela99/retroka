@@ -5,6 +5,11 @@ import { AppError } from "../../Models/Error.model.js";
 import { base_path, url } from "../../Config/Env.js";
 import { CartModel } from "../../Models/Cart.model.js";
 import { FileModel } from "../../Models/File.model.js";
+import { VariantModel } from "../../Models/Variant.model.js";
+import {
+    validarActualizacionVariante,
+    validarNuevaVariante
+} from "../../Services/Variant.service.js";
 import { obtenerCsrfToken, esPeticionAjax, validarCsrfToken } from "../../Helpers.js";
 import { validateFile } from "secure-file-validator";
 import { MAX_PRODUCT_IMAGES, MAX_PRODUCT_IMAGE_SIZE } from "../../Middleware/Upload.middleware.js";
@@ -31,6 +36,30 @@ const consumeProductMessage = (req) => {
     }
 
     return message;
+};
+
+const consumeVariantFormData = (req, productId, variantId = null) => {
+    const storedFormData = req.session?.variant_form_data || {};
+
+    if (req.session?.variant_form_data) {
+        delete req.session.variant_form_data;
+    }
+
+    const belongsToProduct = String(storedFormData.producto_id || '') === String(productId);
+    const belongsToVariant = variantId === null
+        || String(storedFormData.variante_id || '') === String(variantId);
+
+    return belongsToProduct && belongsToVariant ? storedFormData : {};
+};
+
+const validateMatchingId = (routeId, submittedValue, fieldName) => {
+    if (submittedValue === undefined) return;
+
+    const submittedId = Number(submittedValue);
+
+    if (!Number.isInteger(submittedId) || submittedId < 1 || submittedId !== routeId) {
+        throw new AppError('Bad Request', `${fieldName} no coincide con la ruta solicitada`, 400);
+    }
 };
 
 const productErrorMessage = (error, fallbackMessage) => {
@@ -182,12 +211,52 @@ export class ProductController{
     #categoryController
     #cartModel
     #fileModel
+    #variantModel
 
     constructor(){
         this.#productModel = new ProductModel();
         this.#categoryController = new CategoryModel();
         this.#cartModel = new CartModel();
         this.#fileModel = new FileModel();
+        this.#variantModel = new VariantModel();
+    }
+
+    async #respondVariantError(req, res, next, error, options){
+        const receivedStatus = error?.statusCode;
+        const status = Number.isInteger(receivedStatus)
+            && receivedStatus >= 400
+            && receivedStatus <= 599
+            ? receivedStatus
+            : 500;
+        const message = productErrorMessage(error, options.fallbackMessage);
+
+        if (status >= 500) {
+            console.error(options.logMessage, error);
+        }
+
+        if (esPeticionAjax(req)) {
+            return res.status(status).json({
+                data:null,
+                error:status >= 500 ? 'Internal Server Error' : error?.error || 'Request Error',
+                message:message.message,
+                status,
+                redirectTo:options.redirectTo
+            });
+        }
+
+        req.session.product_message = message;
+
+        if (options.formData) {
+            req.session.variant_form_data = options.formData;
+        }
+
+        try {
+            await saveSession(req);
+        } catch (sessionError) {
+            return next(sessionError);
+        }
+
+        return res.redirect(303, options.redirectTo);
     }
 
     async getAll(req, res, next){
@@ -376,6 +445,338 @@ export class ProductController{
             }
 
             return res.redirect(303, url('/admin/productos/nuevo'));
+        }
+    }
+
+    async createVariant(req, res, next){
+        const productId = Number(req.params?.productId);
+        const productUrl = Number.isInteger(productId) && productId > 0
+            ? url(`/admin/productos/${productId}`)
+            : url('/admin/productos');
+        let productExists = false;
+
+        try {
+            if (!Number.isInteger(productId) || productId < 1) {
+                throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            const producto = await this.#productModel.findByID(productId);
+
+            if (!producto) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            productExists = true;
+
+            const [talles, variantes] = await Promise.all([
+                this.#variantModel.getSizes(),
+                this.#variantModel.findByProductId(productId)
+            ]);
+            const productMessage = consumeProductMessage(req);
+            const formData = consumeVariantFormData(req, productId);
+
+            res.set('Cache-Control', 'no-store');
+
+            return res.status(200).render('admin/variant/create', {
+                title:`Nueva variante de ${producto.nombre}`,
+                user:req.session.user,
+                producto,
+                variantes,
+                talles,
+                url,
+                baseUrl:base_path(),
+                csrf_token:obtenerCsrfToken(req),
+                product_message:productMessage,
+                form_data:formData
+            });
+        } catch (error) {
+            return this.#respondVariantError(req, res, next, error, {
+                fallbackMessage:'No se pudo abrir la creacion de la variante. Intenta nuevamente.',
+                logMessage:'Error interno al abrir la creacion de una variante:',
+                redirectTo:productExists ? productUrl : url('/admin/productos')
+            });
+        }
+    }
+
+    async storeVariant(req, res, next){
+        const productId = Number(req.params?.productId);
+        const productUrl = Number.isInteger(productId) && productId > 0
+            ? url(`/admin/productos/${productId}`)
+            : url('/admin/productos');
+        const createUrl = Number.isInteger(productId) && productId > 0
+            ? url(`/admin/productos/${productId}/variantes/nueva`)
+            : url('/admin/productos');
+        const formData = {
+            producto_id:req.body?.producto_id,
+            talle:req.body?.talle,
+            stock:req.body?.stock,
+            precio:req.body?.precio
+        };
+        let productExists = false;
+
+        try {
+            if (!Number.isInteger(productId) || productId < 1) {
+                throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            validateMatchingId(productId, req.body?.producto_id, 'El producto');
+
+            const producto = await this.#productModel.findByID(productId);
+
+            if (!producto) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            productExists = true;
+
+            if (!validarCsrfToken(req)) {
+                throw new AppError('Forbidden', 'CSRF token invalido', 403);
+            }
+
+            const variante = validarNuevaVariante({
+                ...req.body,
+                producto_id:productId
+            });
+            const talle = await this.#variantModel.findSizeByID(variante.talle);
+
+            if (!talle) {
+                throw new AppError('Bad Request', 'El talle seleccionado no existe', 400);
+            }
+
+            const result = await this.#variantModel.create(productId, variante);
+            const response = {
+                data:{ ...result, talle:talle.tipo },
+                message:'Variante creada exitosamente',
+                status:201,
+                redirectTo:productUrl
+            };
+
+            if (esPeticionAjax(req)) {
+                return res.status(201).json(response);
+            }
+
+            req.session.product_message = {
+                type:'success',
+                message:response.message
+            };
+            await saveSession(req);
+
+            return res.redirect(303, productUrl);
+        } catch (error) {
+            return this.#respondVariantError(req, res, next, error, {
+                fallbackMessage:'No se pudo crear la variante. Intenta nuevamente.',
+                logMessage:'Error interno al crear una variante:',
+                redirectTo:productExists ? createUrl : url('/admin/productos'),
+                formData:productExists ? formData : null
+            });
+        }
+    }
+
+    async editVariant(req, res, next){
+        const productId = Number(req.params?.productId);
+        const variantId = Number(req.params?.variantId);
+        const productUrl = Number.isInteger(productId) && productId > 0
+            ? url(`/admin/productos/${productId}`)
+            : url('/admin/productos');
+        let productExists = false;
+
+        try {
+            if (!Number.isInteger(productId) || productId < 1) {
+                throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            if (!Number.isInteger(variantId) || variantId < 1) {
+                throw new AppError('Bad Request', 'Id de variante invalido', 400);
+            }
+
+            const producto = await this.#productModel.findByID(productId);
+
+            if (!producto) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            productExists = true;
+
+            const [variante, talles, variantes] = await Promise.all([
+                this.#variantModel.findByID(productId, variantId),
+                this.#variantModel.getSizes(),
+                this.#variantModel.findByProductId(productId)
+            ]);
+            const productMessage = consumeProductMessage(req);
+            const formData = consumeVariantFormData(req, productId, variantId);
+
+            res.set('Cache-Control', 'no-store');
+
+            return res.status(200).render('admin/variant/edit', {
+                title:`Editar variante de ${producto.nombre}`,
+                user:req.session.user,
+                producto,
+                variante,
+                variantes,
+                talles,
+                url,
+                baseUrl:base_path(),
+                csrf_token:obtenerCsrfToken(req),
+                product_message:productMessage,
+                form_data:formData
+            });
+        } catch (error) {
+            return this.#respondVariantError(req, res, next, error, {
+                fallbackMessage:'No se pudo abrir la edicion de la variante. Intenta nuevamente.',
+                logMessage:'Error interno al abrir la edicion de una variante:',
+                redirectTo:productExists ? productUrl : url('/admin/productos')
+            });
+        }
+    }
+
+    async updateVariant(req, res, next){
+        const productId = Number(req.params?.productId);
+        const variantId = Number(req.params?.variantId);
+        const productUrl = Number.isInteger(productId) && productId > 0
+            ? url(`/admin/productos/${productId}`)
+            : url('/admin/productos');
+        const editUrl = Number.isInteger(productId) && productId > 0
+            && Number.isInteger(variantId) && variantId > 0
+            ? url(`/admin/productos/${productId}/variantes/${variantId}/editar`)
+            : productUrl;
+        const formData = {
+            producto_id:req.body?.producto_id,
+            variante_id:req.body?.variante_id,
+            talle:req.body?.talle,
+            stock:req.body?.stock,
+            precio:req.body?.precio
+        };
+        let productExists = false;
+        let variantExists = false;
+
+        try {
+            if (!Number.isInteger(productId) || productId < 1) {
+                throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            if (!Number.isInteger(variantId) || variantId < 1) {
+                throw new AppError('Bad Request', 'Id de variante invalido', 400);
+            }
+
+            validateMatchingId(productId, req.body?.producto_id, 'El producto');
+            validateMatchingId(variantId, req.body?.variante_id, 'La variante');
+
+            const producto = await this.#productModel.findByID(productId);
+
+            if (!producto) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            productExists = true;
+
+            await this.#variantModel.findByID(productId, variantId);
+            variantExists = true;
+
+            if (!validarCsrfToken(req)) {
+                throw new AppError('Forbidden', 'CSRF token invalido', 403);
+            }
+
+            const variante = validarActualizacionVariante(req.body);
+
+            if (variante.talle !== undefined) {
+                const talle = await this.#variantModel.findSizeByID(variante.talle);
+
+                if (!talle) {
+                    throw new AppError('Bad Request', 'El talle seleccionado no existe', 400);
+                }
+            }
+
+            const result = await this.#variantModel.update(productId, variantId, variante);
+            const response = {
+                data:result,
+                message:'Variante actualizada exitosamente',
+                status:200,
+                redirectTo:editUrl
+            };
+
+            if (esPeticionAjax(req)) {
+                return res.status(200).json(response);
+            }
+
+            req.session.product_message = {
+                type:'success',
+                message:response.message
+            };
+            await saveSession(req);
+
+            return res.redirect(303, editUrl);
+        } catch (error) {
+            const redirectTo = productExists && variantExists ? editUrl : productUrl;
+
+            return this.#respondVariantError(req, res, next, error, {
+                fallbackMessage:'No se pudo actualizar la variante. Intenta nuevamente.',
+                logMessage:'Error interno al actualizar una variante:',
+                redirectTo:productExists ? redirectTo : url('/admin/productos'),
+                formData:productExists && variantExists ? formData : null
+            });
+        }
+    }
+
+    async deleteVariant(req, res, next){
+        const productId = Number(req.params?.productId);
+        const variantId = Number(req.params?.variantId);
+        const productUrl = Number.isInteger(productId) && productId > 0
+            ? url(`/admin/productos/${productId}`)
+            : url('/admin/productos');
+        let productExists = false;
+
+        try {
+            if (!Number.isInteger(productId) || productId < 1) {
+                throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            if (!Number.isInteger(variantId) || variantId < 1) {
+                throw new AppError('Bad Request', 'Id de variante invalido', 400);
+            }
+
+            validateMatchingId(productId, req.body?.producto_id, 'El producto');
+            validateMatchingId(variantId, req.body?.variante_id, 'La variante');
+
+            const producto = await this.#productModel.findByID(productId);
+
+            if (!producto) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            productExists = true;
+
+            await this.#variantModel.findByID(productId, variantId);
+
+            if (!validarCsrfToken(req)) {
+                throw new AppError('Forbidden', 'CSRF token invalido', 403);
+            }
+
+            await this.#variantModel.delete(productId, variantId);
+
+            const response = {
+                data:{ id:variantId, producto_id:productId },
+                message:'Variante eliminada exitosamente',
+                status:200,
+                redirectTo:productUrl
+            };
+
+            if (esPeticionAjax(req)) {
+                return res.status(200).json(response);
+            }
+
+            req.session.product_message = {
+                type:'success',
+                message:response.message
+            };
+            await saveSession(req);
+
+            return res.redirect(303, productUrl);
+        } catch (error) {
+            return this.#respondVariantError(req, res, next, error, {
+                fallbackMessage:'No se pudo eliminar la variante. Intenta nuevamente.',
+                logMessage:'Error interno al eliminar una variante:',
+                redirectTo:productExists ? productUrl : url('/admin/productos')
+            });
         }
     }
 
