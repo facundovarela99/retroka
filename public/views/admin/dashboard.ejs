@@ -1,0 +1,154 @@
+<% 
+if (productosNormalizados){
+    console.log(productosNormalizados);
+}
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../partials/admin/admin-navbar') %>
+        <%- include('../../partials/admin/admin-sidebar', { activePage: 'dashboard' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-sm-6">
+                            <h1 class="mb-0 fs-3">Dashboard</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-end mb-0">
+                                <li class="breadcrumb-item active" aria-current="page">Administracion</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid">
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="small-box text-bg-primary">
+                                <div class="inner">
+                                    <h2><%= stats.productos %></h2>
+                                    <p>Productos</p>
+                                </div>
+                                <i class="small-box-icon bi bi-box-seam" aria-hidden="true"></i>
+                                <a href="<%= url('/productos') %>" class="small-box-footer link-light">
+                                    Ver catalogo <i class="bi bi-arrow-right-circle ms-1" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="small-box text-bg-success">
+                                <div class="inner">
+                                    <h2><%= stats.stockTotal %></h2>
+                                    <p>Unidades en stock</p>
+                                </div>
+                                <i class="small-box-icon bi bi-boxes" aria-hidden="true"></i>
+                                <a href="<%= url('/productos') %>" class="small-box-footer link-light">
+                                    Revisar inventario <i class="bi bi-arrow-right-circle ms-1" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="small-box text-bg-warning">
+                                <div class="inner">
+                                    <h2><%= stats.sinStock %></h2>
+                                    <p>Productos sin stock</p>
+                                </div>
+                                <i class="small-box-icon bi bi-exclamation-triangle" aria-hidden="true"></i>
+                                <a href="<%= url('/productos') %>" class="small-box-footer link-dark">
+                                    Ver productos <i class="bi bi-arrow-right-circle ms-1" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="small-box text-bg-info">
+                                <div class="inner">
+                                    <h2><%= stats.categorias %></h2>
+                                    <p>Categorias</p>
+                                </div>
+                                <i class="small-box-icon bi bi-tags" aria-hidden="true"></i>
+                                <a href="<%= url('/admin/productos/nuevo') %>" class="small-box-footer link-dark">
+                                    Nuevo producto <i class="bi bi-arrow-right-circle ms-1" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-xl-8">
+                            <section class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">Stock bajo</h2>
+                                </div>
+                                <div class="card-body p-0">
+                                    <% if (productosStockBajo.length > 0) { %>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">Producto</th>
+                                                        <th scope="col">Talle</th>
+                                                        <th scope="col" class="text-end">Stock</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% productosStockBajo.forEach((producto) => { %>
+                                                        <tr>
+                                                            <td>
+                                                                <a href="<%= url('/admin/productos/' + producto.id) %>"><%= producto.nombre %></a>
+                                                            </td>
+                                                            <td><%= producto.talle || 'Sin talle' %></td>
+                                                            <td class="text-end">
+                                                                <span class="badge <%= Number(producto.stock) === 0 ? 'text-bg-danger' : 'text-bg-warning' %>">
+                                                                    <%= producto.stock %>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    <% }) %>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    <% } else { %>
+                                        <p class="text-body-secondary p-3 mb-0">No hay productos con stock bajo.</p>
+                                    <% } %>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="col-12 col-xl-4">
+                            <section class="card card-primary card-outline">
+                                <div class="card-header">
+                                    <h2 class="card-title">Acciones</h2>
+                                </div>
+                                <div class="card-body d-grid gap-2">
+                                    <a class="btn btn-primary" href="<%= url('/admin/productos/nuevo') %>">
+                                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                        Crear producto
+                                    </a>
+                                    <a class="btn btn-outline-secondary" href="<%= url('/productos') %>">
+                                        <i class="bi bi-shop me-1" aria-hidden="true"></i>
+                                        Abrir tienda
+                                    </a>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../partials/admin/admin-scripts') %>
+</body>
+</html>

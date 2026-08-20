@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../partials/admin/admin-navbar') %>
+        <%- include('../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-sm-6">
+                            <h1 class="mb-0 fs-3">Productos</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid">
+                    <%- include('../../partials/admin/product-message') %>
+
+                    <div class="row g-3 mb-4">
+                        
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-xl-8">
+                            <section class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">Listado de productos</h2>
+                                </div>
+                                <div class="card-body p-0">
+                                    <% if (productos.length > 0) { %>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">Producto</th>
+                                                        <th scope="col">Categoria</th>
+                                                        <th scope="col">Stock</th>
+                                                        <th scope="col" class="text-end">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% productos.forEach((producto) => { %>
+                                                        <tr>
+                                                            <td>
+                                                                <span><%= producto.nombre %></span>
+                                                            </td>
+                                                            <td><span><%= producto.categoria_producto || 'Sin categoria' %></span></td>
+                                                            <td class="text-end">
+                                                                <span class="badge <%= Number(producto.stock) === 0 ? 'text-bg-danger' : 'text-bg-warning' %>">
+                                                                    <%= producto.stock %>
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                 <a
+                                                                    class="btn btn-sm btn-outline-primary"
+                                                                    href="<%= url('/admin/productos/' + producto.id) %>"
+                                                                    title="Editar"
+                                                                 >
+                                                                    <i class="fas fa-edit me-1" aria-hidden="true"></i>
+                                                                 </a>
+                                                                 <form class="d-inline" method="post" action="<%= url('/admin/productos/eliminar') %>" title="Eliminar">
+                                                                    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                                                                    <input type="hidden" name="id" value="<%= producto.id %>">
+                                                                    <button class="btn btn-sm btn-outline-danger" type="submit">
+                                                                        <i class="fas fa-trash-alt me-1" aria-hidden="true"></i>
+                                                                    </button>
+                                                                 </form>
+                                                            </td>
+                                                        </tr>
+                                                    <% }) %>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    <% } else { %>
+                                        <p class="text-body-secondary p-3 mb-0">No hay productos registrados.</p>
+                                    <% } %>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="col-12 col-xl-4">
+                            <section class="card card-primary card-outline">
+                                <div class="card-header">
+                                    <h2 class="card-title">Acciones</h2>
+                                </div>
+                                <div class="card-body d-grid gap-2">
+                                    <a class="btn btn-primary" href="<%= url('/admin/productos/nuevo') %>">
+                                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                        Crear producto
+                                    </a>
+                                    <a class="btn btn-outline-secondary" href="<%= url('/productos') %>">
+                                        <i class="bi bi-shop me-1" aria-hidden="true"></i>
+                                        Abrir tienda
+                                    </a>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../partials/admin/admin-scripts') %>
+</body>
+</html>

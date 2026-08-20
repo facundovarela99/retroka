@@ -49,10 +49,10 @@ const usaImagenGenerica = imagenProducto === imagenGenerica;
 %>
 <!DOCTYPE html>
 <html lang="es">
-<%- include('../partials/meta') %>
+<%- include('../../partials/site/meta') %>
 <body id="body-producto">
 
-    <%- include('../partials/navbar') %>
+    <%- include('../../partials/site/navbar') %>
 
     <main class="product-detail-main w-100 mx-auto">
         <div class="row g-4">
@@ -204,9 +204,9 @@ const usaImagenGenerica = imagenProducto === imagenGenerica;
         </div>
     </main>
 
-    <%- include('../partials/sidebar') %>
-    <%- include('../partials/footer') %>
-    <%- include('../partials/initial-state') %>
+    <%- include('../../partials/site/sidebar') %>
+    <%- include('../../partials/site/footer') %>
+    <%- include('../../partials/site/initial-state') %>
     <script type="module" defer src="/assets/js/carrito.js"></script>
     <script type="module" defer src="/assets/js/producto.js"></script>
 </body>

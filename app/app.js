@@ -98,7 +98,7 @@ app.use((error, req, res, next) => {
         });
     }
 
-    return res.status(status).render('error', {
+    return res.status(status).render('site/error', {
         title: status === 404 ? 'Pagina no encontrada' : 'Ocurrio un error',
         status,
         message,

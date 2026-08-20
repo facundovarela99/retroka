@@ -1,5 +1,6 @@
 <%
 const usuarioAutenticado = typeof user !== 'undefined' && Boolean(user);
+const esAdministrador = usuarioAutenticado && Boolean(user.is_admin);
 const cantidadCarrito = typeof carrito !== 'undefined' && Array.isArray(carrito)
     ? carrito.reduce((total, productoCarrito) => {
         const cantidadProducto = Number.parseInt(productoCarrito.cantidad, 10);
@@ -23,6 +24,11 @@ const cantidadCarrito = typeof carrito !== 'undefined' && Array.isArray(carrito)
             >
                 Productos
             </a>
+            <% if (esAdministrador) { %>
+                <a class="products-nav-link text-decoration-none" href="<%= url('/admin/dashboard') %>">
+                    Panel admin
+                </a>
+            <% } %>
         </nav>
 
         <div class="products-navbar-actions d-flex align-items-center gap-3">

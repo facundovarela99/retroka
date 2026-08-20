@@ -106,7 +106,7 @@ export class AuthController {
 
         const GEOREF_API_BASE = process.env.GEOREF_API_BASE;
 
-        return res.status(200).render('registro', {
+        return res.status(200).render('site/registro', {
             title: 'Registro',
             url,
             GEOREF_API_BASE: GEOREF_API_BASE,
@@ -164,7 +164,7 @@ export class AuthController {
 
         res.set('Cache-Control', 'no-store');
 
-        return res.status(200).render('login', {
+        return res.status(200).render('site/login', {
             title: 'Login',
             url,
             csrf_token: obtenerCsrfToken(req),

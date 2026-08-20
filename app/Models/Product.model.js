@@ -25,6 +25,7 @@ export class ProductModel{
                     LIMIT 1) AS imagen_archivo
             FROM ${this.#table} p
             LEFT JOIN categorias c ON p.categoria = c.id
+            WHERE p.activo = 1
             ORDER BY p.id DESC;`
         );
 
@@ -49,7 +50,8 @@ export class ProductModel{
             FROM ${this.#table} p
             LEFT JOIN categorias c
             ON p.categoria = c.id
-            WHERE p.id = ?;`,[id]
+            WHERE p.id = ?
+                AND p.activo = 1;`,[id]
         );
 
         if (row.length === 0) throw new AppError('Not Found', 'Producto inexistente', 404);
@@ -87,6 +89,7 @@ export class ProductModel{
             INNER JOIN ${this.#sizesTable} t ON t.id = pv.talle_id
             LEFT JOIN categorias c ON p.categoria = c.id
             WHERE pv.producto_id = ?
+                AND p.activo = 1
                 AND pv.activo = 1
             ORDER BY t.id, pv.id;`,
             [productId]
@@ -120,6 +123,7 @@ export class ProductModel{
             LEFT JOIN categorias c ON p.categoria = c.id
             WHERE pv.producto_id = ?
                 AND pv.id = ?
+                AND p.activo = 1
                 AND pv.activo = 1
             LIMIT 1;`,
             [productId, variantId]
@@ -265,13 +269,20 @@ export class ProductModel{
 
     async delete(id){
         try {
-
-            await pool.execute(
-                `DELETE FROM ${this.#table} WHERE id = ?;`,[id]
+            const [result] = await pool.execute(
+                `UPDATE ${this.#table}
+                SET activo = 0
+                WHERE id = ? AND activo = 1;`,
+                [id]
             );
 
+            if (result.affectedRows === 0) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
         } catch (error) {
-            throw new AppError('Internal Server Error', 'Error interno del servidor', 500);
+            throw error instanceof AppError
+                ? error
+                : new AppError('Internal Server Error', error.message, 500);
         }
     }
 

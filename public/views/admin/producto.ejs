@@ -1,0 +1,195 @@
+<%
+const variantesProducto = Array.isArray(variantes) ? variantes : [];
+const imagenesRegistradas = typeof imagenes !== 'undefined' && Array.isArray(imagenes)
+    ? imagenes
+    : [];
+const imagenesProducto = imagenesRegistradas.length > 0
+    ? imagenesRegistradas
+    : producto.imagen_archivo
+        ? [{ url: producto.imagen_archivo, nombre_original: producto.nombre }]
+        : [];
+const stockTotal = variantesProducto.reduce((total, variante) => {
+    const stock = Number.parseInt(variante.stock, 10);
+    return total + (Number.isFinite(stock) ? Math.max(stock, 0) : 0);
+}, 0);
+const formatearPrecio = (valor) => {
+    const precio = Number(valor);
+
+    return Number.isFinite(precio)
+        ? precio.toLocaleString('es-AR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })
+        : '0,00';
+};
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../partials/admin/admin-navbar') %>
+        <%- include('../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center gy-2">
+                        <div class="col-sm-8">
+                            <h1 class="mb-0 fs-3"><%= producto.nombre %></h1>
+                        </div>
+                        <div class="col-sm-4">
+                            <ol class="breadcrumb float-sm-end mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="<%= url('/admin/productos') %>">Productos</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Detalle</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid pb-4">
+                    <%- include('../../partials/admin/product-message') %>
+
+                    <div class="row g-4">
+                        <div class="col-12 col-xl-7">
+                            <section aria-labelledby="product-images-title">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h2 id="product-images-title" class="fs-5 mb-0">Imagenes</h2>
+                                    <span class="badge text-bg-secondary">
+                                        <%= imagenesProducto.length %>
+                                    </span>
+                                </div>
+
+                                <% if (imagenesProducto.length > 0) { %>
+                                    <div class="row g-3">
+                                        <% imagenesProducto.forEach((imagen, index) => { %>
+                                            <div class="<%= index === 0 ? 'col-12' : 'col-6 col-md-4' %>">
+                                                <div class="ratio <%= index === 0 ? 'ratio-4x3' : 'ratio-1x1' %> overflow-hidden rounded border bg-body-secondary">
+                                                    <img
+                                                        class="w-100 h-100 object-fit-contain"
+                                                        src="<%= imagen.url %>"
+                                                        alt="<%= imagen.nombre_original || producto.nombre %>"
+                                                        loading="<%= index === 0 ? 'eager' : 'lazy' %>"
+                                                        decoding="async"
+                                                    >
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="ratio ratio-4x3 rounded border bg-body-secondary">
+                                        <div class="d-flex flex-column align-items-center justify-content-center text-body-secondary">
+                                            <i class="bi bi-image fs-1 mb-2" aria-hidden="true"></i>
+                                            <span>Sin imagenes</span>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </section>
+                        </div>
+
+                        <div class="col-12 col-xl-5">
+                            <section class="card card-primary card-outline h-100" aria-labelledby="product-info-title">
+                                <div class="card-header">
+                                    <h2 id="product-info-title" class="card-title">Informacion general</h2>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-body-secondary"><%= producto.descripcion || 'Sin descripcion' %></p>
+
+                                    <dl class="mb-0">
+                                        <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
+                                            <dt class="fw-semibold">Categoria</dt>
+                                            <dd class="mb-0 text-end"><%= producto.categoria_producto || 'Sin categoria' %></dd>
+                                        </div>
+                                        <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
+                                            <dt class="fw-semibold">Precio base</dt>
+                                            <dd class="mb-0 text-end">$<%= formatearPrecio(producto.precio) %></dd>
+                                        </div>
+                                        <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
+                                            <dt class="fw-semibold">Stock total</dt>
+                                            <dd class="mb-0 text-end">
+                                                <span class="badge <%= stockTotal > 0 ? 'text-bg-success' : 'text-bg-danger' %>">
+                                                    <%= stockTotal %>
+                                                </span>
+                                            </dd>
+                                        </div>
+                                        <div class="d-flex justify-content-between gap-3 pt-3">
+                                            <dt class="fw-semibold">Variantes activas</dt>
+                                            <dd class="mb-0 text-end"><%= variantesProducto.length %></dd>
+                                        </div>
+                                    </dl>
+                                </div>
+
+                                <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
+                                    <a class="btn btn-outline-secondary" href="<%= url('/productos') %>">
+                                        <i class="bi bi-shop me-1" aria-hidden="true"></i>
+                                        Ver en tienda
+                                    </a>
+                                    <a class="btn btn-primary" href="<%= url('/admin/productos') %>">
+                                        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
+                                        Volver
+                                    </a>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <section class="mt-4" aria-labelledby="product-variants-title">
+                        <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                            <h2 id="product-variants-title" class="fs-5 mb-0">Variantes</h2>
+                            <a class="btn btn-sm btn-outline-primary" href="<%= url('/admin/productos/nuevo') %>">
+                                <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                Nuevo producto
+                            </a>
+                        </div>
+
+                        <% if (variantesProducto.length > 0) { %>
+                            <div class="row g-3">
+                                <% variantesProducto.forEach((variante) => { %>
+                                    <div class="col-12 col-sm-6 col-xl-4">
+                                        <article class="card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                                                    <div>
+                                                        <p class="text-body-secondary small mb-1">Talle</p>
+                                                        <h3 class="fs-5 mb-0"><%= variante.talle || 'Sin talle' %></h3>
+                                                    </div>
+                                                    <span class="badge <%= Number(variante.stock) > 0 ? 'text-bg-success' : 'text-bg-danger' %>">
+                                                        <%= Number(variante.stock) > 0 ? 'Disponible' : 'Sin stock' %>
+                                                    </span>
+                                                </div>
+
+                                                <div class="d-flex justify-content-between gap-3 py-2 border-top">
+                                                    <span class="text-body-secondary">Stock</span>
+                                                    <strong><%= variante.stock %></strong>
+                                                </div>
+                                                <div class="d-flex justify-content-between gap-3 pt-2 border-top">
+                                                    <span class="text-body-secondary">Precio</span>
+                                                    <strong>$<%= formatearPrecio(variante.precio) %></strong>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        <% } else { %>
+                            <div class="border rounded p-4 text-center text-body-secondary">
+                                <i class="bi bi-box-seam fs-2 d-block mb-2" aria-hidden="true"></i>
+                                Este producto no tiene variantes activas.
+                            </div>
+                        <% } %>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../partials/admin/admin-scripts') %>
+</body>
+</html>

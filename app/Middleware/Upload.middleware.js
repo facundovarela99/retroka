@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import { AppError } from '../Models/Error.model.js';
 import { esPeticionAjax } from '../Helpers.js';
+import { url } from '../Config/Env.js';
 
 export const MAX_PRODUCT_IMAGES = 8;
 export const MAX_PRODUCT_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -17,6 +18,13 @@ const ALLOWED_IMAGE_TYPES = new Map([
     ['.gif', new Set(['image/gif'])],
     ['.svg', new Set(['image/svg+xml'])]
 ]);
+
+const saveSession = (req) => new Promise((resolve, reject) => {
+    req.session.save((error) => {
+        if (error) return reject(error);
+        return resolve();
+    });
+});
 
 mkdirSync(TEMP_UPLOAD_DIRECTORY, { recursive: true });
 
@@ -133,8 +141,25 @@ export const handleProductUploadError = async (error, req, res, next) => {
         type: 'error',
         message: status >= 500
             ? 'No se pudieron procesar las imagenes. Intenta nuevamente.'
-            : error.message
+            : error.message,
+        ...(process.env.NODE_ENV !== 'production' && error?.stack
+            ? { details: error.stack }
+            : {})
+    };
+    req.session.product_form_data = {
+        nombre: req.body?.nombre,
+        descripcion: req.body?.descripcion,
+        talle: req.body?.talle,
+        stock: req.body?.stock,
+        precio: req.body?.precio,
+        categoria: req.body?.categoria
     };
 
-    return res.redirect(303, '/retroka/productos/nuevo');
+    try {
+        await saveSession(req);
+    } catch (sessionError) {
+        return next(sessionError);
+    }
+
+    return res.redirect(303, url('/admin/productos/nuevo'));
 };

@@ -1,20 +1,20 @@
-import { CategoryModel } from "../Models/Category.model.js";
-import { ProductModel } from "../Models/Product.model.js"
-import { validarNuevoProducto, validarProductoActualizacion } from "../Services/Product.service.js";
-import { AppError } from "../Models/Error.model.js";
-import { base_path, url } from "../Config/Env.js";
-import { CartModel } from "../Models/Cart.model.js";
-import { FileModel } from "../Models/File.model.js";
-import { obtenerCsrfToken, esPeticionAjax } from "../Helpers.js";
+import { CategoryModel } from "../../Models/Category.model.js";
+import { ProductModel } from "../../Models/Product.model.js"
+import { validarNuevoProducto, validarProductoActualizacion } from "../../Services/Product.service.js";
+import { AppError } from "../../Models/Error.model.js";
+import { base_path, url } from "../../Config/Env.js";
+import { CartModel } from "../../Models/Cart.model.js";
+import { FileModel } from "../../Models/File.model.js";
+import { obtenerCsrfToken, esPeticionAjax } from "../../Helpers.js";
 import { validateFile } from "secure-file-validator";
-import { MAX_PRODUCT_IMAGE_SIZE } from "../Middleware/Upload.middleware.js";
+import { MAX_PRODUCT_IMAGE_SIZE } from "../../Middleware/Upload.middleware.js";
 import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PRODUCT_UPLOADS_ROOT = path.resolve(__dirname, '../../public/uploads');
+const PRODUCT_UPLOADS_ROOT = path.resolve(__dirname, '../../../public/uploads');
 const MIME_TYPE_BY_EXTENSION = new Map([
     ['.jpg', 'image/jpeg'],
     ['.jpeg', 'image/jpeg'],
@@ -131,7 +131,7 @@ export class ProductController{
                 carritoUsuario = await this.#cartModel.getUserCart(user.id);
             }
 
-            res.status(200).render('productos',{
+            res.status(200).render('site/productos',{
                 user:user,
                 title: 'Productos',
                 productos:productos,
@@ -155,8 +155,9 @@ export class ProductController{
                 delete req.session.product_form_data;
             }
 
-            return res.render('create', {
+            return res.render('admin/create', {
                 title:'Crear producto',
+                user:req.session.user,
                 url:url,
                 csrf_token: obtenerCsrfToken(req),
                 talles: await this.#productModel.getTalles(),
@@ -186,7 +187,7 @@ export class ProductController{
                 carritoUsuario = await this.#cartModel.getUserCart(user.id);
             }
 
-            res.status(200).render('producto', {
+            res.status(200).render('site/producto', {
                 user:user,
                 title:producto.nombre,
                 producto:producto,
@@ -286,7 +287,7 @@ export class ProductController{
             };
             req.session.product_form_data = formData;
 
-            return res.redirect(303, '/retroka/productos/nuevo');
+            return res.redirect(303, url('/admin/productos/nuevo'));
         }
     }
 

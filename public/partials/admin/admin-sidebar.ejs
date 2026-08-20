@@ -1,0 +1,56 @@
+<%
+const paginaActiva = typeof activePage !== 'undefined' ? activePage : '';
+%>
+<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+        <a href="<%= url('/admin/dashboard') %>" class="brand-link text-decoration-none">
+            <span class="brand-text fw-semibold">Retroka Admin</span>
+        </a>
+    </div>
+
+    <div class="sidebar-wrapper">
+        <nav class="mt-2" aria-label="Navegacion administrativa">
+            <ul
+                class="nav sidebar-menu flex-column"
+                data-lte-toggle="treeview"
+                data-accordion="false"
+            >
+                <li class="nav-header">GESTION</li>
+                <li class="nav-item">
+                    <a
+                        class="nav-link<%= paginaActiva === 'dashboard' ? ' active' : '' %>"
+                        href="<%= url('/admin/dashboard') %>"
+                    >
+                        <i class="nav-icon bi bi-speedometer2" aria-hidden="true"></i>
+                        <p>Dashboard</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a
+                        class="nav-link<%= paginaActiva === 'products' ? ' active' : '' %>"
+                        href="<%= url('/admin/productos') %>"
+                    >
+                        <i class="nav-icon bi bi-box-seam" aria-hidden="true"></i>
+                        <p>Productos</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a
+                        class="nav-link<%= paginaActiva === 'create-product' ? ' active' : '' %>"
+                        href="<%= url('/admin/productos/nuevo') %>"
+                    >
+                        <i class="nav-icon bi bi-plus-square" aria-hidden="true"></i>
+                        <p>Nuevo producto</p>
+                    </a>
+                </li>
+                <li class="nav-header">TIENDA</li>
+                <li class="nav-item">
+                    <a class="nav-link" href="<%= url('/productos') %>">
+                        <i class="nav-icon bi bi-shop" aria-hidden="true"></i>
+                        <p>Ver tienda</p>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</aside>

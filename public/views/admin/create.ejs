@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../partials/admin/admin-navbar') %>
+        <%- include('../../partials/admin/admin-sidebar', { activePage: 'create-product' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-sm-6">
+                            <h1 class="mb-0 fs-3">Nuevo producto</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-end mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="<%= url('/admin/dashboard') %>">Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Nuevo producto</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid">
+                    <%- include('../../partials/admin/product-message') %>
+
+                    <div class="row justify-content-center">
+                        <div class="col-12 col-xl-9">
+                            <form
+                                id="form-create-product"
+                                method="post"
+                                action="<%= url('/admin/productos/crear') %>"
+                                enctype="multipart/form-data"
+                            >
+                                <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+
+                                <div class="card card-primary card-outline">
+                                    <div class="card-header">
+                                        <h2 class="card-title">Informacion del producto</h2>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-12 col-md-7">
+                                                <label for="name" class="form-label">Nombre</label>
+                                                <input
+                                                    type="text"
+                                                    name="nombre"
+                                                    class="form-control"
+                                                    id="name"
+                                                    maxlength="150"
+                                                    value="<%= form_data.nombre || '' %>"
+                                                    required
+                                                >
+                                            </div>
+
+                                            <div class="col-12 col-md-5">
+                                                <label for="category" class="form-label">Categoria</label>
+                                                <select name="categoria" class="form-select" id="category" required>
+                                                    <option value="" <%= form_data.categoria ? '' : 'selected' %> disabled>
+                                                        Seleccionar categoria
+                                                    </option>
+                                                    <% categorias.forEach((categoria) => { %>
+                                                        <option
+                                                            value="<%= categoria.id %>"
+                                                            <%= String(form_data.categoria || '') === String(categoria.id) ? 'selected' : '' %>
+                                                        ><%= categoria.nombre %></option>
+                                                    <% }) %>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <label for="description" class="form-label">Descripcion</label>
+                                                <textarea
+                                                    name="descripcion"
+                                                    class="form-control"
+                                                    id="description"
+                                                    rows="4"
+                                                    required
+                                                ><%= form_data.descripcion || '' %></textarea>
+                                            </div>
+
+                                            <div class="col-12 col-sm-4">
+                                                <label for="size" class="form-label">Talle</label>
+                                                <select name="talle" class="form-select" id="size" required>
+                                                    <option value="" <%= form_data.talle ? '' : 'selected' %> disabled>
+                                                        Seleccionar talle
+                                                    </option>
+                                                    <% talles.forEach((talle) => { %>
+                                                        <option
+                                                            value="<%= talle.id %>"
+                                                            <%= String(form_data.talle || '') === String(talle.id) ? 'selected' : '' %>
+                                                        ><%= talle.tipo %></option>
+                                                    <% }) %>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-12 col-sm-4">
+                                                <label for="stock" class="form-label">Stock</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="bi bi-boxes" aria-hidden="true"></i></span>
+                                                    <input
+                                                        type="number"
+                                                        name="stock"
+                                                        class="form-control"
+                                                        id="stock"
+                                                        min="0"
+                                                        step="1"
+                                                        value="<%= form_data.stock ?? '' %>"
+                                                        required
+                                                    >
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-4">
+                                                <label for="price" class="form-label">Precio</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input
+                                                        type="number"
+                                                        name="precio"
+                                                        class="form-control"
+                                                        id="price"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value="<%= form_data.precio ?? '' %>"
+                                                        required
+                                                    >
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <label for="images" class="form-label">Imagenes</label>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    id="images"
+                                                    name="imagenes"
+                                                    accept="image/jpeg,image/png,image/gif,image/svg+xml,.jpg,.jpeg,.png,.gif,.svg"
+                                                    multiple
+                                                >
+                                                <div class="form-text">Hasta 8 imagenes de 5 MB cada una.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer d-flex justify-content-end gap-2">
+                                        <a class="btn btn-secondary" href="<%= url('/admin/productos') %>">Cancelar</a>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>
+                                            Crear producto
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../partials/admin/admin-scripts') %>
+</body>
+</html>

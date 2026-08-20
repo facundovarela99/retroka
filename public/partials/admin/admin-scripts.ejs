@@ -1,0 +1,34 @@
+<script
+    src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js"
+    crossorigin="anonymous"
+></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"
+></script>
+<script src="/assets/vendor/adminlte/js/adminlte.min.js"></script>
+<script>
+    (() => {
+        const initializeSidebarScroll = () => {
+            const sidebar = document.querySelector('.sidebar-wrapper');
+            const overlayScrollbars = globalThis.OverlayScrollbarsGlobal?.OverlayScrollbars;
+
+            if (!sidebar || !overlayScrollbars || window.innerWidth <= 992) return;
+
+            overlayScrollbars(sidebar, {
+                scrollbars: {
+                    theme: 'os-theme-light',
+                    autoHide: 'leave',
+                    clickScroll: true
+                }
+            });
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSidebarScroll, { once: true });
+        } else {
+            initializeSidebarScroll();
+        }
+    })();
+</script>
