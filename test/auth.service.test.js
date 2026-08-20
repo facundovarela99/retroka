@@ -9,7 +9,7 @@ import {
 } from '../app/Services/Auth.service.js';
 import { esPeticionAjax, validarCsrfToken } from '../app/Helpers.js';
 
-const password = 'Clave-Segura-2026';
+const password = 'Clave-Segura-26';
 
 test('el registro normaliza el email y nunca acepta privilegios del cliente', () => {
     const user = validarNuevoUsuario({
@@ -23,6 +23,35 @@ test('el registro normaliza el email y nunca acepta privilegios del cliente', ()
     assert.equal(user.email, 'user@example.com');
     assert.equal(user.is_admin, false);
     assert.equal(Object.hasOwn(user, 'campo_desconocido'), false);
+});
+
+test('la validacion registra el detalle tecnico pero expone solo mensajes publicos', () => {
+    const originalConsoleError = console.error;
+    let technicalErrorLogged = false;
+    console.error = () => {
+        technicalErrorLogged = true;
+    };
+
+    try {
+        let validationError;
+
+        try {
+            validarNuevoUsuario({
+                email: 'user@example.com',
+                password: 'clave-segura-26'
+            });
+        } catch (error) {
+            validationError = error;
+        }
+
+        assert.equal(technicalErrorLogged, true);
+        assert.ok(validationError);
+        assert.match(validationError.message, /El nombre es obligatorio/);
+        assert.match(validationError.message, /letra mayuscula/);
+        assert.doesNotMatch(validationError.message, /Invalid input|expected string|undefined/i);
+    } finally {
+        console.error = originalConsoleError;
+    }
 });
 
 test('el login valida y normaliza las credenciales', () => {
@@ -45,12 +74,12 @@ test('la validacion de credenciales usa el mismo error para usuario o clave inva
 
     await assert.rejects(
         () => validarCredenciales('Clave-Incorrecta-2026', user),
-        (error) => error.statusCode === 401 && error.message === 'Email o contrasena incorrectos'
+        (error) => error.statusCode === 401 && error.message === 'Email o contraseña incorrectos'
     );
 
     await assert.rejects(
         () => validarCredenciales(password, undefined),
-        (error) => error.statusCode === 401 && error.message === 'Email o contrasena incorrectos'
+        (error) => error.statusCode === 401 && error.message === 'Email o contraseña incorrectos'
     );
 });
 

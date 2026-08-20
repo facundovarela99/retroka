@@ -52,7 +52,7 @@ const responder = (req, res, { status, payload, redirectTo, flashType = null }) 
     return res.redirect(303, redirectTo);
 };
 
-const responderError = (req, res, error) => {
+const responderError = (req, res, error, redirectPath) => {
     const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
     const internalError = status >= 500;
     const message = internalError
@@ -69,9 +69,9 @@ const responderError = (req, res, error) => {
             error: internalError ? 'Internal Server Error' : error.error,
             message,
             status,
-            redirectTo: LOGIN_PATH
+            redirectTo: redirectPath
         }),
-        redirectTo: LOGIN_PATH,
+        redirectTo: redirectPath,
         flashType: 'error'
     });
 };
@@ -118,6 +118,7 @@ export class AuthController {
     async register(req, res){
         try {
             exigirCsrf(req);
+            console.log('Body de la request al registrarse: ', req.body);
             const body = validarNuevoUsuario(req.body);
 
             const userExist = await this.#userModel.findByColumns(['id'], 'email', body.email);
@@ -144,10 +145,11 @@ export class AuthController {
             return responder(req, res, {
                 status: 201,
                 payload,
-                redirectTo: DEFAULT_AUTH_PATH
+                redirectTo: DEFAULT_AUTH_PATH,
+                flashType: 'success',
             });
         } catch (error) {
-            return responderError(req, res, error);
+            return responderError(req, res, error, '/retroka/registro');
         }
     }
 
@@ -203,7 +205,7 @@ export class AuthController {
                 redirectTo: DEFAULT_AUTH_PATH
             });
         } catch (error) {
-            return responderError(req, res, error);
+            return responderError(req, res, error, '/retroka/login');
         }
     }
 
@@ -234,7 +236,7 @@ export class AuthController {
                 redirectTo: DEFAULT_AUTH_PATH
             });
         } catch (error) {
-            return responderError(req, res, error);
+            return responderError(req, res, error, '/retroka/productos');
         }
     }
 

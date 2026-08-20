@@ -131,6 +131,12 @@ export class ProductController{
                 carritoUsuario = await this.#cartModel.getUserCart(user.id);
             }
 
+            const authMessage = req.session?.auth_message || null;
+
+            if (req.session?.auth_message) {
+                delete req.session.auth_message;
+            }
+
             res.status(200).render('site/productos',{
                 user:user,
                 title: 'Productos',
@@ -139,7 +145,8 @@ export class ProductController{
                 url:url,
                 baseUrl:base_path(),
                 csrf_token:obtenerCsrfToken(req),
-                product_message:productMessage
+                product_message:productMessage,
+                auth_message:authMessage
             })
         } catch (error) {
             return next(error);

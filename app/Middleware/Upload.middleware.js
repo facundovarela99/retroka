@@ -128,32 +128,51 @@ export const handleProductUploadError = async (error, req, res, next) => {
     });
 
     const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+    const internalError = status >= 500;
+    const message = internalError
+        ? 'No se pudieron procesar las imagenes. Intenta nuevamente.'
+        : error.message;
+    const isProductUpdate = req.path === '/admin/productos/actualizar';
+    const productId = Number(req.body?.id);
+    const updateRedirect = Number.isInteger(productId) && productId > 0
+        ? url(`/admin/producto/edit/${productId}`)
+        : url('/admin/productos');
 
     if (esPeticionAjax(req)) {
-        return next(error);
+        return res.status(status).json({
+            data: null,
+            error: internalError ? 'Internal Server Error' : error?.error || 'Bad Request',
+            message,
+            status,
+            redirectTo: isProductUpdate ? updateRedirect : url('/admin/productos/nuevo')
+        });
     }
 
-    if (status >= 500) {
+    if (internalError) {
         console.error('Error interno al recibir imagenes de producto:', error);
     }
 
     req.session.product_message = {
         type: 'error',
-        message: status >= 500
-            ? 'No se pudieron procesar las imagenes. Intenta nuevamente.'
-            : error.message,
-        ...(process.env.NODE_ENV !== 'production' && error?.stack
-            ? { details: error.stack }
-            : {})
+        message
     };
-    req.session.product_form_data = {
+    const formData = {
+        id: req.body?.id,
+        variante_id: req.body?.variante_id,
         nombre: req.body?.nombre,
         descripcion: req.body?.descripcion,
         talle: req.body?.talle,
         stock: req.body?.stock,
         precio: req.body?.precio,
-        categoria: req.body?.categoria
+        categoria: req.body?.categoria,
+        eliminar_imagenes: req.body?.eliminar_imagenes
     };
+
+    if (isProductUpdate) {
+        req.session.product_update_form_data = formData;
+    } else {
+        req.session.product_form_data = formData;
+    }
 
     try {
         await saveSession(req);
@@ -161,5 +180,5 @@ export const handleProductUploadError = async (error, req, res, next) => {
         return next(sessionError);
     }
 
-    return res.redirect(303, url('/admin/productos/nuevo'));
+    return res.redirect(303, isProductUpdate ? updateRedirect : url('/admin/productos/nuevo'));
 };

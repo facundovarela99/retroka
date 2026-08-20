@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validarNuevoProducto } from '../app/Services/Product.service.js';
+import {
+    validarNuevoProducto,
+    validarProductoActualizacion
+} from '../app/Services/Product.service.js';
 
 const validProduct = {
     nombre: 'remera urbana',
@@ -48,5 +51,30 @@ test('el producto nuevo limita la cantidad de imagenes', () => {
             )
         }),
         /hasta 8 imagenes/
+    );
+});
+
+test('la actualizacion normaliza talle, stock, precio y categoria', () => {
+    const result = validarProductoActualizacion({
+        nombre: 'remera actualizada',
+        talle: '3',
+        stock: '12',
+        precio: '19999.90',
+        categoria: '2'
+    });
+
+    assert.deepEqual(result, {
+        nombre: 'Remera actualizada',
+        talle: 3,
+        stock: 12,
+        precio: 19999.9,
+        categoria: 2
+    });
+});
+
+test('la actualizacion acepta un body sin campos editables', () => {
+    assert.deepEqual(
+        validarProductoActualizacion({ id: '43', csrf_token: 'token' }),
+        {}
     );
 });

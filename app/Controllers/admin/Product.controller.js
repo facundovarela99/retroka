@@ -5,9 +5,9 @@ import { AppError } from "../../Models/Error.model.js";
 import { base_path, url } from "../../Config/Env.js";
 import { CartModel } from "../../Models/Cart.model.js";
 import { FileModel } from "../../Models/File.model.js";
-import { obtenerCsrfToken, esPeticionAjax } from "../../Helpers.js";
+import { obtenerCsrfToken, esPeticionAjax, validarCsrfToken } from "../../Helpers.js";
 import { validateFile } from "secure-file-validator";
-import { MAX_PRODUCT_IMAGE_SIZE } from "../../Middleware/Upload.middleware.js";
+import { MAX_PRODUCT_IMAGES, MAX_PRODUCT_IMAGE_SIZE } from "../../Middleware/Upload.middleware.js";
 import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -38,10 +38,7 @@ const productErrorMessage = (error, fallbackMessage) => {
 
     return {
         type: 'error',
-        message: status >= 500 ? fallbackMessage : error.message,
-        ...(process.env.NODE_ENV !== 'production' && error?.stack
-            ? { details: error.stack }
-            : {})
+        message: status >= 500 ? fallbackMessage : error.message
     };
 };
 
@@ -71,9 +68,42 @@ const removeProductUploadDirectory = async (productId) => {
     await fs.rm(directory, { recursive: true, force: true });
 };
 
-const validateAndStoreProductImages = async (files, productId) => {
+const normalizeFileIds = (value) => {
+    const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
+    const ids = values.map(Number);
+
+    if (ids.some((id) => !Number.isInteger(id) || id < 1)) {
+        throw new AppError('Bad Request', 'La seleccion de imagenes no es valida', 400);
+    }
+
+    return [...new Set(ids)];
+};
+
+const removeStoredProductFiles = async (files, productId) => {
+    const directory = productUploadDirectory(productId);
+
+    await Promise.all(files.map(async (file) => {
+        const filename = path.basename(file.nombre || '');
+
+        if (!filename) return;
+
+        const filePath = path.resolve(directory, filename);
+
+        if (path.dirname(filePath) !== directory) {
+            throw new AppError('Internal Server Error', 'Ruta de imagen de producto invalida', 500);
+        }
+
+        try {
+            await fs.unlink(filePath);
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+        }
+    }));
+};
+
+const validateProductImages = async (files) => {
     if (!Array.isArray(files) || files.length === 0) {
-        return [];
+        return;
     }
 
     for (const file of files) {
@@ -89,9 +119,16 @@ const validateAndStoreProductImages = async (files, productId) => {
             );
         }
     }
+};
+
+const storeProductImages = async (files, productId) => {
+    if (!Array.isArray(files) || files.length === 0) {
+        return [];
+    }
 
     const directory = productUploadDirectory(productId);
     await fs.mkdir(directory, { recursive: true });
+    const storedPaths = [];
 
     try {
         const storedFiles = [];
@@ -107,6 +144,7 @@ const validateAndStoreProductImages = async (files, productId) => {
 
             const destination = path.join(directory, filename);
             await fs.rename(file.path, destination);
+            storedPaths.push(destination);
 
             storedFiles.push({
                 url: `/uploads/${productId}/${filename}`,
@@ -119,9 +157,22 @@ const validateAndStoreProductImages = async (files, productId) => {
 
         return storedFiles;
     } catch (error) {
-        await removeProductUploadDirectory(productId);
+        await Promise.all(storedPaths.map(async (storedPath) => {
+            try {
+                await fs.unlink(storedPath);
+            } catch (cleanupError) {
+                if (cleanupError.code !== 'ENOENT') {
+                    console.error('No se pudo limpiar una imagen nueva:', cleanupError);
+                }
+            }
+        }));
         throw error;
     }
+};
+
+const validateAndStoreProductImages = async (files, productId) => {
+    await validateProductImages(files);
+    return storeProductImages(files, productId);
 };
 
 
@@ -158,14 +209,14 @@ export class ProductController{
                 url:url,
                 baseUrl:base_path(),
                 csrf_token:obtenerCsrfToken(req),
-                product_message:productMessage
+                product_message:productMessage,
             })
         } catch (error) {
             return next(error);
         }
     }
 
-    async edit(req, res, next){
+    async product(req, res, next){
         const id = req.params.id;
 
         try {
@@ -329,21 +380,127 @@ export class ProductController{
     }
 
 
-    async update(req, res, next){
-        const id = Number(req.body.id);
+    async edit(req, res, next){
+        const id = Number(req.params?.id ?? req.query?.id);
 
         try {
-
             if (!Number.isInteger(id) || id < 1) {
                 throw new AppError('Bad Request', 'Id de producto invalido', 400);
             }
-        
-            await this.#productModel.findByID(id);
+
+            const producto = await this.#productModel.findByID(id);
+
+            if (!producto) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            const [variantes, imagenes, talles, categorias] = await Promise.all([
+                this.#productModel.findVariants(producto),
+                this.#fileModel.findByProductId(producto.id),
+                this.#productModel.getTalles(),
+                this.#categoryController.getAll()
+            ]);
+            const productMessage = consumeProductMessage(req);
+            const storedFormData = req.session?.product_update_form_data || {};
+            const formData = String(storedFormData.id || '') === String(id)
+                ? storedFormData
+                : {};
+
+            if (req.session?.product_update_form_data) {
+                delete req.session.product_update_form_data;
+            }
+
+            res.set('Cache-Control', 'no-store');
+
+            return res.status(200).render('admin/edit', {
+                title:`Editar ${producto.nombre}`,
+                user:req.session.user,
+                producto,
+                variantes,
+                imagenes,
+                talles,
+                categorias,
+                url,
+                baseUrl:base_path(),
+                csrf_token:obtenerCsrfToken(req),
+                product_message:productMessage,
+                form_data:formData
+            });
+        } catch (error) {
+            const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+            const message = productErrorMessage(
+                error,
+                'No se pudo abrir la edicion del producto. Intenta nuevamente.'
+            );
+
+            if (status >= 500) {
+                console.error('Error interno al abrir la edicion de un producto:', error);
+            }
+
+            if (esPeticionAjax(req)) {
+                return res.status(status).json({
+                    data:null,
+                    error:status >= 500 ? 'Internal Server Error' : error?.error || 'Request Error',
+                    message:message.message,
+                    status,
+                    redirectTo:url('/admin/productos')
+                });
+            }
+
+            req.session.product_message = message;
+
+            try {
+                await saveSession(req);
+            } catch (sessionError) {
+                return next(sessionError);
+            }
+
+            return res.redirect(303, url('/admin/productos'));
+        }
+    }
+
+
+    async update(req, res, next){
+        const id = Number(req.body?.id);
+        const editUrl = Number.isInteger(id) && id > 0
+            ? url(`/admin/producto/edit/${id}`)
+            : url('/admin/productos');
+        const submittedFormData = {
+            id:req.body?.id,
+            variante_id:req.body?.variante_id,
+            nombre:req.body?.nombre,
+            descripcion:req.body?.descripcion,
+            talle:req.body?.talle,
+            stock:req.body?.stock,
+            precio:req.body?.precio,
+            categoria:req.body?.categoria,
+            eliminar_imagenes:req.body?.eliminar_imagenes
+        };
+        let productExists = false;
+        let storedImages = [];
+        let insertedImages = [];
+
+        try {
+            if (!Number.isInteger(id) || id < 1) {
+                throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            const existingProduct = await this.#productModel.findByID(id);
+
+            if (!existingProduct) {
+                throw new AppError('Not Found', 'Producto inexistente', 404);
+            }
+
+            productExists = true;
+
+            if (!validarCsrfToken(req)) {
+                throw new AppError('Forbidden', 'CSRF token invalido', 403);
+            }
 
             const producto = validarProductoActualizacion(req.body);
 
-            if (req.body.categoria !== undefined && req.body.categoria !== '') {
-                const categoria = await this.#categoryController.findByID(req.body.categoria);
+            if (producto.categoria !== undefined) {
+                const categoria = await this.#categoryController.findByID(producto.categoria);
 
                 if (!categoria) {
                     throw new AppError('Bad Request', 'La categoria seleccionada no existe', 400);
@@ -352,21 +509,89 @@ export class ProductController{
                 producto.categoria = categoria.id;
             }
 
-            if (Object.keys(producto).length === 0) {
-                throw new AppError('Bad Request', 'No hay campos para actualizar', 400);
+            if (producto.talle !== undefined) {
+                const talle = await this.#productModel.findSizeByID(producto.talle);
+
+                if (!talle) {
+                    throw new AppError('Bad Request', 'El talle seleccionado no existe', 400);
+                }
             }
 
-            // Logica para actualizar las imágenes
-            // ......
-            // Logica para actualizar las imágenes
+            const variantIdValue = req.body?.variante_id;
+            const variantId = variantIdValue === undefined || variantIdValue === ''
+                ? null
+                : Number(variantIdValue);
 
+            if (variantId !== null && (!Number.isInteger(variantId) || variantId < 1)) {
+                throw new AppError('Bad Request', 'Id de variante invalido', 400);
+            }
+
+            if (variantId !== null) {
+                await this.#productModel.findVariantByID(id, variantId);
+            }
+
+            const currentImages = await this.#fileModel.findByProductId(id);
+            const imageIdsToDelete = normalizeFileIds(req.body?.eliminar_imagenes);
+            const imagesToDelete = await this.#fileModel.findByIdsForProduct(id, imageIdsToDelete);
+
+            if (imagesToDelete.length !== imageIdsToDelete.length) {
+                throw new AppError('Bad Request', 'Una imagen seleccionada no pertenece al producto', 400);
+            }
+
+            const receivedFiles = Array.isArray(req.files) ? req.files : [];
+            const finalImageCount = currentImages.length - imagesToDelete.length + receivedFiles.length;
+
+            if (finalImageCount > MAX_PRODUCT_IMAGES) {
+                throw new AppError(
+                    'Bad Request',
+                    `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes por producto`,
+                    400
+                );
+            }
+
+            await validateProductImages(receivedFiles);
             await this.#productModel.update(id, producto);
 
+            const variantData = {
+                talle:producto.talle,
+                stock:producto.stock,
+                precio:producto.precio
+            };
+            const hasVariantChanges = Object.values(variantData).some((value) => value !== undefined);
+
+            if (hasVariantChanges && variantId !== null) {
+                await this.#productModel.updateVariant(id, variantId, variantData);
+            } else if (hasVariantChanges) {
+                if (variantData.talle === undefined) {
+                    throw new AppError('Bad Request', 'El talle es obligatorio para crear la variante', 400);
+                }
+
+                await this.#productModel.createVariant(id, {
+                    talle:variantData.talle,
+                    stock:variantData.stock ?? existingProduct.stock,
+                    precio:variantData.precio ?? existingProduct.precio
+                });
+            }
+
+            storedImages = await storeProductImages(receivedFiles, id);
+            insertedImages = await this.#fileModel.createMany(id, storedImages);
+
+            if (imagesToDelete.length > 0) {
+                await this.#fileModel.deleteMany(id, imageIdsToDelete);
+                await removeStoredProductFiles(imagesToDelete, id).catch((fileError) => {
+                    console.error('No se pudo eliminar una imagen del disco:', fileError);
+                });
+            }
+
             const response = {
-                data:producto,
-                id:id,
+                data:{
+                    ...producto,
+                    imagenes_agregadas:insertedImages,
+                    imagenes_eliminadas:imageIdsToDelete
+                },
+                id,
                 message:'Producto actualizado con exito',
-                redirectTo:url('/admin/productos/' + id)
+                redirectTo:editUrl
             };
 
             if (esPeticionAjax(req)) {
@@ -374,38 +599,68 @@ export class ProductController{
             }
 
             req.session.product_message = {
-                type: 'success',
-                message: response.message
+                type:'success',
+                message:response.message
             };
             await saveSession(req);
 
             return res.redirect(303, response.redirectTo);
         } catch (error) {
-            if (esPeticionAjax(req)) {
-                return next(error);
+            if (insertedImages.length > 0) {
+                try {
+                    await this.#fileModel.deleteMany(id, insertedImages.map((image) => image.id));
+                } catch (rollbackError) {
+                    console.error('No se pudieron revertir los registros de imagenes nuevas:', rollbackError);
+                }
             }
 
-            const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+            if (storedImages.length > 0) {
+                try {
+                    await removeStoredProductFiles(storedImages, id);
+                } catch (rollbackError) {
+                    console.error('No se pudieron revertir las imagenes nuevas:', rollbackError);
+                }
+            }
+
+            const receivedStatus = error?.statusCode;
+            const status = Number.isInteger(receivedStatus)
+                && receivedStatus >= 400
+                && receivedStatus <= 599
+                ? receivedStatus
+                : 500;
+            const publicMessage = status >= 500
+                ? 'No se pudo actualizar el producto. Intenta nuevamente.'
+                : error.message;
+            const redirectTo = productExists ? editUrl : url('/admin/productos');
 
             if (status >= 500) {
                 console.error('Error interno al actualizar un producto:', error);
+            }
+
+            if (esPeticionAjax(req)) {
+                return res.status(status).json({
+                    data:null,
+                    error:status >= 500 ? 'Internal Server Error' : error?.error || 'Request Error',
+                    message:publicMessage,
+                    status,
+                    redirectTo
+                });
             }
 
             req.session.product_message = productErrorMessage(
                 error,
                 'No se pudo actualizar el producto. Intenta nuevamente.'
             );
-            req.session.product_update_form_data = req.body;
+
+            if (productExists) {
+                req.session.product_update_form_data = submittedFormData;
+            }
 
             try {
                 await saveSession(req);
             } catch (sessionError) {
                 return next(sessionError);
             }
-
-            const redirectTo = Number.isInteger(id) && id > 0 && status !== 404
-                ? url('/admin/productos/' + id)
-                : url('/admin/productos');
 
             return res.redirect(303, redirectTo);
         }

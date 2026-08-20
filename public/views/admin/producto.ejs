@@ -94,7 +94,7 @@ const formatearPrecio = (valor) => {
                         <div class="col-12 col-xl-5">
                             <section class="card card-primary card-outline h-100" aria-labelledby="product-info-title">
                                 <div class="card-header">
-                                    <h2 id="product-info-title" class="card-title">Informacion general</h2>
+                                    <h2 id="product-info-title" class="card-title">Información general</h2>
                                 </div>
 
                                 <div class="card-body">
@@ -129,7 +129,11 @@ const formatearPrecio = (valor) => {
                                         <i class="bi bi-shop me-1" aria-hidden="true"></i>
                                         Ver en tienda
                                     </a>
-                                    <a class="btn btn-primary" href="<%= url('/admin/productos') %>">
+                                    <a class="btn btn-outline-warning" href="<%= url('/admin/producto/edit/' + producto.id) %>">
+                                        <i class="fas fa-pencil-alt me-1" aria-hidden="true"></i>
+                                        Editar
+                                    </a>
+                                    <a class="btn btn-outline-primary" href="<%= url('/admin/productos') %>">
                                         <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
                                         Volver
                                     </a>

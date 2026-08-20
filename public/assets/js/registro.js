@@ -14,7 +14,7 @@ async function cargarProvincias() {
 
         provincias.forEach(prov => {
             const option = document.createElement('option');
-            option.value = prov.id;
+            option.value = prov.nombre;
             option.textContent = prov.nombre;
             selectProvincia.appendChild(option);
         });
@@ -45,7 +45,7 @@ async function cargarLocalidades(provinciaId) {
 
         data.localidades.forEach(loc => {
             const option = document.createElement('option');
-            option.value = loc.id;
+            option.value = loc.nombre;
             option.textContent = loc.nombre;
             selectLocalidad.appendChild(option);
         });
@@ -59,8 +59,9 @@ async function cargarLocalidades(provinciaId) {
 
 // Listeners
 selectProvincia.addEventListener('change', (e) => {
+    const provinciaId = event.target.selectedOptions[0]?.dataset.id;
     cargarLocalidades(e.target.value);
 });
 
 // Inicializar
-document.addEventListener('DOMContentLoaded', cargarProvincias());
+document.addEventListener('DOMContentLoaded', cargarProvincias);

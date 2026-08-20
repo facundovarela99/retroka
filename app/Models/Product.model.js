@@ -194,7 +194,7 @@ export class ProductModel{
         }
 
         if (fields.length === 0) {
-            throw new AppError('No Content', 'No hay campos para actualizar', 204);
+            return { affectedRows: 0 };
         }
 
         const query = `UPDATE ${this.#table} SET ${fields.join(", ")} WHERE id = (?)`;
@@ -204,9 +204,11 @@ export class ProductModel{
 
             await connection.beginTransaction();
             
-            await connection.execute(query, values);
+            const [result] = await connection.execute(query, values);
             
             await connection.commit();
+
+            return result;
             
         } catch (error) {
             if (connection) await connection.rollback();
@@ -234,7 +236,7 @@ export class ProductModel{
         }
 
         if (fields.length === 0) {
-            throw new AppError('No Content', 'No hay campos de variante para actualizar', 204);
+            return { affectedRows: 0 };
         }
 
         let connection;
@@ -256,6 +258,8 @@ export class ProductModel{
             }
 
             await connection.commit();
+
+            return result;
         } catch (error) {
             if (connection) await connection.rollback();
 
@@ -264,6 +268,32 @@ export class ProductModel{
                 : new AppError('Internal Server Error', error.message, 500);
         } finally {
             if (connection) connection.release();
+        }
+    }
+
+    async createVariant(productId, body){
+        const talleId = body.talle_id ?? body.talle;
+
+        try {
+            const [result] = await pool.execute(
+                `INSERT INTO ${this.#variantsTable}
+                    (producto_id, talle_id, stock, precio, activo)
+                VALUES (?, ?, ?, ?, 1);`,
+                [productId, talleId, body.stock ?? 0, body.precio ?? 0]
+            );
+
+            return {
+                id: result.insertId,
+                producto_id: productId,
+                talle_id: talleId,
+                stock: body.stock ?? 0,
+                precio: body.precio ?? 0,
+                activo: 1
+            };
+        } catch (error) {
+            throw error instanceof AppError
+                ? error
+                : new AppError('Internal Server Error', error.message, 500);
         }
     }
 
@@ -291,6 +321,15 @@ export class ProductModel{
             `SELECT id, tipo FROM ${this.#sizesTable} ORDER BY id;`
         );
         return rows
+    }
+
+    async findSizeByID(id){
+        const [rows] = await pool.execute(
+            `SELECT id, tipo FROM ${this.#sizesTable} WHERE id = ? LIMIT 1;`,
+            [id]
+        );
+
+        return rows[0];
     }
 
 }

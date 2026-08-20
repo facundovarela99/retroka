@@ -18,6 +18,8 @@ const obtenerImagenProducto = (producto) => {
 
     return imagen ? imagen.trim() : imagenGenerica;
 };
+
+
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -34,6 +36,17 @@ const obtenerImagenProducto = (producto) => {
                 role="status"
             >
                 <%= product_message.message %>
+            </div>
+        <% } %>
+
+        <% if (auth_message !== null && auth_message?.message) { %>
+            <div
+                class="alert <%= auth_message.type === 'success'
+                    ? 'alert-success'
+                    : 'alert-danger' %>"
+                role="<%= auth_message.type === 'error' ? 'alert' : 'status' %>"
+            >
+                <%= auth_message.message %>
             </div>
         <% } %>
 

@@ -20,17 +20,17 @@ const emailSchema = zod.string({
     .max(254, { message: 'El email es demasiado largo' });
 
 const passwordRegistroSchema = zod.string({
-    invalid_type_error: 'La contrasena debe ser una cadena',
-    required_error: 'La contrasena es obligatoria'
+    invalid_type_error: 'La contraseña debe ser una cadena',
+    required_error: 'La contraseña es obligatoria'
 })
-    .min(12, { message: 'La contrasena debe tener al menos 12 caracteres' })
-    .max(72, { message: 'La contrasena no debe exceder los 72 caracteres' })
-    .regex(/[A-Z]/, { message: 'Debe contener al menos una letra mayuscula' })
-    .regex(/[a-z]/, { message: 'Debe contener al menos una letra minuscula' })
-    .regex(/[0-9]/, { message: 'Debe contener al menos un numero' })
-    .regex(/[^A-Za-z0-9]/, { message: 'Debe contener al menos un caracter especial' })
+    .min(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+    .max(16, { message: 'La contraseña no debe exceder los 16 caracteres' })
+    .regex(/[A-Z]/, { message: 'La contraseña debe contener al menos una letra mayuscula' })
+    .regex(/[a-z]/, { message: 'La contraseña debe contener al menos una letra minuscula' })
+    .regex(/[0-9]/, { message: 'La contraseña debe contener al menos un numero' })
+    .regex(/[^A-Za-z0-9]/, { message: 'La contraseña debe contener al menos un caracter especial' })
     .refine((password) => Buffer.byteLength(password, 'utf8') <= 72, {
-        message: 'La contrasena no debe exceder los 72 bytes'
+        message: 'La contraseña no debe exceder los 72 bytes'
     });
 
 const campoOpcional = (schema) => zod.preprocess(
@@ -41,10 +41,10 @@ const campoOpcional = (schema) => zod.preprocess(
 const loginSchema = zod.object({
     email: emailSchema,
     password: zod.string({
-        invalid_type_error: 'La contrasena debe ser una cadena',
-        required_error: 'La contrasena es obligatoria'
+        invalid_type_error: 'La contraseña debe ser una cadena',
+        required_error: 'La contraseña es obligatoria'
     })
-        .min(1, { message: 'La contrasena es obligatoria' })
+        .min(1, { message: 'La contraseña es obligatoria' })
         .max(72, { message: 'Credenciales invalidas' })
         .refine((password) => Buffer.byteLength(password, 'utf8') <= 72, {
             message: 'Credenciales invalidas'
@@ -68,16 +68,57 @@ const userSchema = zod.object({
             .max(20, { message: 'El telefono no debe exceder los 20 caracteres' })
             .regex(/^[0-9+() -]+$/, { message: 'El telefono no es valido' })
     ),
-    codigo_postal: campoOpcional(zod.string().trim().max(20)),
-    localidad: campoOpcional(zod.string().trim().max(100)),
-    provincia: campoOpcional(zod.string().trim().max(100))
+    codigo_postal: campoOpcional(
+        zod.string().trim().max(20, { message: 'El codigo postal no debe exceder los 20 caracteres' })
+    ),
+    localidad: campoOpcional(
+        zod.string().trim().max(100, { message: 'La localidad no debe exceder los 100 caracteres' })
+    ),
+    provincia: campoOpcional(
+        zod.string().trim().max(100, { message: 'La provincia no debe exceder los 100 caracteres' })
+    )
 });
+
+const fieldLabels = {
+    nombre: 'El nombre',
+    email: 'El email',
+    password: 'La contraseña',
+    telefono: 'El telefono',
+    codigo_postal: 'El codigo postal',
+    localidad: 'La localidad',
+    provincia: 'La provincia'
+};
+
+const getSubmittedValue = (object, path = []) => path.reduce(
+    (value, segment) => value?.[segment],
+    object
+);
+
+const publicIssueMessage = (issue, object) => {
+    if (issue.code !== 'invalid_type') {
+        return issue.message;
+    }
+
+    const field = issue.path?.[0];
+    const label = fieldLabels[field] || 'El campo';
+    const submittedValue = getSubmittedValue(object, issue.path);
+    const missingValue = submittedValue === undefined || submittedValue === null;
+
+    return missingValue
+        ? `${label} es obligatorio`
+        : `${label} tiene un formato invalido`;
+};
 
 const parseSchema = (schema, object) => {
     const result = schema.safeParse(object);
 
     if (!result.success) {
-        const message = result.error.issues.map((issue) => issue.message).join(', ');
+        console.error('Error tecnico de validacion:', result.error);
+
+        const message = [...new Set(
+            result.error.issues.map((issue) => publicIssueMessage(issue, object))
+        )].join(', ');
+
         throw new AppError('Bad Request', message, 400);
     }
 
@@ -89,7 +130,7 @@ export async function validarCredenciales(password, user) {
     const passwordValida = await bcrypt.compare(password, passwordHash);
 
     if (!user || !passwordValida) {
-        throw new AppError('Unauthorized', 'Email o contrasena incorrectos', 401);
+        throw new AppError('Unauthorized', 'Email o contraseña incorrectos', 401);
     }
 
     return user;

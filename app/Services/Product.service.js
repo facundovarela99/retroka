@@ -3,11 +3,9 @@ import { AppError } from '../Models/Error.model.js';
 import {
     stringCapitalizado, 
     stringCapitalizadoOpcional, 
-    stringEnMayusculaOpcional,
     numeroConDefault,
     numeroRequerido,
-    numeroOpcional,
-    stringOpcionalActualizacion
+    numeroOpcional
 } from '../Helpers.js';
 
 const MAX_PRODUCT_IMAGES = 8;
@@ -66,24 +64,22 @@ const updatedProductSchema = zod.object({
         invalid_type_error: 'La descripcion de debe ser una cadena de caracteres.',
         required_error: 'La descripcion es obligatorio'
     })),
-    talle: stringEnMayusculaOpcional(zod.string({
-        invalid_type_error: 'El talle de debe ser una cadena de caracteres.',
-        required_error: 'El talle es obligatorio'
-    })),
+    talle: numeroOpcional(
+        zod.number().int().positive(),
+        'El talle debe ser un numero valido'
+    ),
     stock: numeroOpcional(zod.number({
-        invalid_type_error: 'El stock debe ser un número no decimal',
+        invalid_type_error: 'El stock debe ser un numero entero',
         required_error: 'El stock es obligatorio'
-    }).min(0)),
+    }).int().min(0, { message: 'El stock no puede ser negativo' })),
     precio: numeroOpcional(zod.number({
-        invalid_type_error: 'El precio debe ser un número no decimal',
+        invalid_type_error: 'El precio debe ser un numero',
         required_error: 'El precio es obligatorio'
-    }).min(0)),
-    imagen: stringOpcionalActualizacion(zod.string({invalid_type_error: 'La imagen debe ser una cadena de caracteres'})),
-    url: stringOpcionalActualizacion(zod.string({invalid_type_error: 'La url debe ser una cadena de caracteres'})),
+    }).min(0, { message: 'El precio no puede ser negativo' })),
     categoria: numeroOpcional(zod.number({
         invalid_type_error: 'La categoría debe ser un número',
         required_error: 'La categoría es obligatoria'
-    }), 'La categoría debe ser un número')
+    }).int().positive(), 'La categoría debe ser un número')
 });
 
 

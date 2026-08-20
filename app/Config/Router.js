@@ -23,14 +23,18 @@ router.post('/logout', requireAuth, requireCsrf, authController.logout.bind(auth
 //       -------------RUTAS ADMIN-------------       //
 
 //Dashboard
+router.get('/admin', requireAuth, isAdmin, dashboardController.index.bind(dashboardController));
 router.get('/admin/dashboard', requireAuth, isAdmin, dashboardController.index.bind(dashboardController));
 
 //Productos
 router.get('/admin/productos', requireAuth, isAdmin, adminProductController.getAll.bind(adminProductController));
 router.get('/admin/productos/nuevo', requireAuth, isAdmin, adminProductController.create.bind(adminProductController));
-router.get('/admin/productos/:id', requireAuth, isAdmin, adminProductController.edit.bind(adminProductController));
+router.get('/admin/productos/:id', requireAuth, isAdmin, adminProductController.product.bind(adminProductController));
+router.get('/admin/producto/edit/:id', requireAuth, isAdmin, adminProductController.edit.bind(adminProductController));
+router.get('/admin/producto/edit', requireAuth, isAdmin, adminProductController.edit.bind(adminProductController));
 router.post('/admin/productos/crear', requireAuth, isAdmin, uploadProductImages, handleProductUploadError, requireCsrf, adminProductController.store.bind(adminProductController));
-router.patch('/admin/productos/actualizar', requireAuth, isAdmin, requireCsrf, adminProductController.update.bind(adminProductController));
+router.post('/admin/productos/actualizar', requireAuth, isAdmin, uploadProductImages, handleProductUploadError, adminProductController.update.bind(adminProductController));
+router.patch('/admin/productos/actualizar', requireAuth, isAdmin, uploadProductImages, handleProductUploadError, adminProductController.update.bind(adminProductController));
 router.post('/admin/productos/eliminar', requireAuth, isAdmin, requireCsrf, adminProductController.delete.bind(adminProductController));
 
 //       -------------RUTAS SITIO-------------       //

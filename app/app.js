@@ -48,64 +48,76 @@ app.use('/retroka', router);
 app.use((req, res, next) => {
     const error = new Error('La pagina solicitada no existe');
     error.statusCode = 404;
-    next(error);
-});
-
-app.use((error, req, res, next) => {
-    if (res.headersSent) {
-        return next(error);
-    }
-
-    const receivedStatus = error?.statusCode ?? error?.status;
-    const status = Number.isInteger(receivedStatus) && receivedStatus >= 400 && receivedStatus <= 599
-        ? receivedStatus
-        : 500;
-    const errorId = randomUUID();
-    const isInternalError = status >= 500;
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    const message = status === 413
-        ? 'La peticion excede el tamano permitido'
-        : isInternalError
-            ? 'Error interno del servidor'
-            : error?.message || 'La peticion no es valida';
-
-    const logContext = {
-        errorId,
-        method: req.method,
-        path: req.originalUrl,
-        status
-    };
-
-    if (isInternalError) {
-        console.error('Error no controlado durante una peticion:', logContext);
-        console.error(error);
-    } else if (isDevelopment) {
-        console.warn('Peticion finalizada con error:', logContext, error?.message);
-    }
-
-    res.set('Cache-Control', 'no-store');
-
-    if (esPeticionAjax(req)) {
-        return res.status(status).json({
-            data: null,
-            error: isInternalError ? 'Internal Server Error' : error?.error || 'Request Error',
-            errorId,
-            message,
-            status,
-            ...(isDevelopment && isInternalError
-                ? { details: error?.message, stack: error?.stack }
-                : {})
-        });
-    }
-
-    return res.status(status).render('site/error', {
-        title: status === 404 ? 'Pagina no encontrada' : 'Ocurrio un error',
-        status,
-        message,
-        errorId,
-        details: isDevelopment && isInternalError ? error?.stack : null
+    res.status(error.statusCode).render('error', {
+        title:'Error 404',
+        status:error.statusCode,
+        message:'La página no existe',
+        errorId: randomUUID(),
+        details:'La pagina solicitada no existe en nuestro servidor',
     });
 });
+
+// app.use((req, res, next) => {
+//     const error = new Error('La pagina solicitada no existe');
+//     error.statusCode = 404;
+//     next(error);
+// });
+
+// app.use((error, req, res, next) => {
+//     if (res.headersSent) {
+//         return next(error);
+//     }
+
+//     const receivedStatus = error?.statusCode ?? error?.status;
+//     const status = Number.isInteger(receivedStatus) && receivedStatus >= 400 && receivedStatus <= 599
+//         ? receivedStatus
+//         : 500;
+//     const errorId = randomUUID();
+//     const isInternalError = status >= 500;
+//     const isDevelopment = process.env.NODE_ENV !== 'production';
+//     const message = status === 413
+//         ? 'La peticion excede el tamano permitido'
+//         : isInternalError
+//             ? 'Error interno del servidor'
+//             : error?.message || 'La peticion no es valida';
+
+//     const logContext = {
+//         errorId,
+//         method: req.method,
+//         path: req.originalUrl,
+//         status
+//     };
+
+//     if (isInternalError) {
+//         console.error('Error no controlado durante una peticion:', logContext);
+//         console.error(error);
+//     } else if (isDevelopment) {
+//         console.warn('Peticion finalizada con error:', logContext, error?.message);
+//     }
+
+//     res.set('Cache-Control', 'no-store');
+
+//     if (esPeticionAjax(req)) {
+//         return res.status(status).json({
+//             data: null,
+//             error: isInternalError ? 'Internal Server Error' : error?.error || 'Request Error',
+//             errorId,
+//             message,
+//             status,
+//             ...(isDevelopment && isInternalError
+//                 ? { details: error?.message, stack: error?.stack }
+//                 : {})
+//         });
+//     }
+
+//     return res.status(status).render('site/error', {
+//         title: status === 404 ? 'Pagina no encontrada' : 'Ocurrio un error',
+//         status,
+//         message,
+//         errorId,
+//         details: isDevelopment && isInternalError ? error?.stack : null
+//     });
+// });
 
 app.listen(port, () => {
     console.log(`Escuchando servidor en http://localhost:${port}`);

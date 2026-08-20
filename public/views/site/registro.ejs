@@ -36,11 +36,19 @@
                 <p class="register-description mb-0">
                     Únete a nuestra comunidad urbana.
                 </p>
+                <p
+                id="mensaje-error"
+                class="login-error mb-0<% if (auth_message?.message) { %> is-visible<% } %>"
+                role="alert"
+                aria-live="polite"
+                aria-atomic="true"
+            ><%= auth_message?.message || '' %></p>
             </header>
 
 
             <!-- Registration Form -->
             <form class="register-form" method="post" action="<%= url('/registro') %>">
+            <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
 
                 <!-- Full Name -->
                 <div>
@@ -51,7 +59,7 @@
                     <input
                         class="form-control register-input"
                         id="fullname"
-                        name="fullname"
+                        name="nombre"
                         placeholder="Nombre completo"
                         type="text"
                         autocomplete="name"
@@ -62,7 +70,7 @@
 
                 <!-- Email -->
                 <div>
-                    <label class="visually-hidden" for="email">
+                    <label class="visually-hidden" for="cellphone">
                         Email
                     </label>
 
@@ -77,13 +85,29 @@
                     >
                 </div>
                 
+                <!-- Teléfono -->
+                <div>
+                    <label class="visually-hidden" for="email">
+                        Celular
+                    </label>
+
+                    <input
+                        class="form-control register-input"
+                        id="cellphone"
+                        name="telefono"
+                        placeholder="Teléfono celular"
+                        type="number"
+                        required
+                    >
+                </div>
+
                 <!-- Provincia -->
                 <div>
                     <label class="visually-hidden" for="provincia">
                         Provincia
                     </label>
 
-                    <select id="provincia">
+                    <select id="provincia" name="provincia" required>
                         <option value="">Seleccione una provincia</option>
                     </select>
                 </div>
@@ -94,7 +118,7 @@
                         Localidad
                     </label>
 
-                    <select id="localidad" disabled>
+                    <select id="localidad" name="localidad" required disabled>
                         <option value="">Seleccione primero una provincia...</option>
                     </select>
                 </div>
@@ -134,15 +158,6 @@
                             required
                         >
 
-                        <button
-                            class="password-toggle position-absolute top-0 end-0 h-100 d-flex align-items-center justify-content-center"
-                            type="button"
-                            aria-label="Mostrar contraseña"
-                            aria-controls="password"
-                        >
-                            <svg class="password-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 12c-3.58 0-6.82-1.95-8.53-5C5.18 8.95 8.42 7 12 7s6.82 1.95 8.53 5c-1.71 3.05-4.95 5-8.53 5Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"></path>
-                            </svg>
                         </button>
 
                     </div>
@@ -166,16 +181,7 @@
                             autocomplete="new-password"
                             required
                         >
-
-                        <button
-                            class="password-toggle position-absolute top-0 end-0 h-100 d-flex align-items-center justify-content-center"
-                            type="button"
-                            aria-label="Mostrar confirmación de contraseña"
-                            aria-controls="confirm_password"
-                        >
-                            <svg class="password-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 12c-3.58 0-6.82-1.95-8.53-5C5.18 8.95 8.42 7 12 7s6.82 1.95 8.53 5c-1.71 3.05-4.95 5-8.53 5Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"></path>
-                            </svg>
+                        
                         </button>
 
                     </div>

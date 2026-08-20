@@ -36,6 +36,15 @@ const paginaActiva = typeof activePage !== 'undefined' ? activePage : '';
                 </li>
                 <li class="nav-item">
                     <a
+                        class="nav-link<%= paginaActiva === 'categories' ? ' active' : '' %>"
+                        href="<%= url('/admin/categorias') %>"
+                    >
+                        <i class="nav-icon fas fa-list" aria-hidden="true"></i>
+                        <p>Categorías</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a
                         class="nav-link<%= paginaActiva === 'create-product' ? ' active' : '' %>"
                         href="<%= url('/admin/productos/nuevo') %>"
                     >
