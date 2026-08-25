@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch ./app/app.js",
+    "start": "node --watch ./app/app.js",
     "test": "node --test"
   },
   "keywords": [],

@@ -1,0 +1,12 @@
+node_modules
+pnpm-debug.log*
+.git
+.gitignore
+.env
+.env.*
+Dockerfile*
+README.md
+coverage
+.vscode
+.idea
+.env.mysql.env
