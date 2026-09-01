@@ -27,19 +27,21 @@ app.use((req, res, next) => {
     res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
 });
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
-    dotfiles: 'deny',
-    index: false,
-    maxAge: '1y',
-    immutable: true,
-    setHeaders: (res, filePath) => {
-        res.set('X-Content-Type-Options', 'nosniff');
+if (process.env.NODE_ENV === 'development') {
+    app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
+        dotfiles:'deny',
+        index:false,
+        maxAge:'1y',
+        immutable:true,
+        setHeaders:(res, filePath) => {
+            res.set('X-Content-Type-Options', 'nosniff');
 
-        if (path.extname(filePath).toLowerCase() === '.svg') {
-            res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+            if (path.extname(filePath).toLowerCase() === '.svg') {
+                res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+            }
         }
-    }
-}));
+    }));
+}
 app.use(AppSession());
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));

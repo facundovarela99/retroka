@@ -88,6 +88,6 @@ export const requireCsrf = (req, res, next) => {
         });
     }
 
-    req.session.auth_message = { type: 'error', message };
+    req.session.message = { type: 'error', message };
     return res.redirect(303, redirectTo);
 };

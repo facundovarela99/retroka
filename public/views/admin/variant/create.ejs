@@ -7,7 +7,7 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
 <html lang="es">
 <%- include('../../../partials/admin/admin-meta') %>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
-    <div class="app-wrapper">
+    <div class="app-wrapper" data-page-loader-content>
         <%- include('../../../partials/admin/admin-navbar') %>
         <%- include('../../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
 
@@ -59,6 +59,7 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
                         <div class="col-12 col-lg-8 col-xl-6">
                             <form
                                 id="form-create-variant"
+                                data-loader-on-submit
                                 method="post"
                                 action="<%= url('/admin/productos/' + producto.id + '/variantes') %>"
                                 enctype="multipart/form-data"
@@ -181,6 +182,7 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
         <%- include('../../../partials/admin/admin-footer') %>
     </div>
 
+    <%- include('../../../partials/admin/admin-loader') %>
     <%- include('../../../partials/admin/admin-scripts') %>
 </body>
 </html>

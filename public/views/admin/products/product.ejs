@@ -206,7 +206,8 @@ const formatearPrecio = (valor) => {
                                                 <form
                                                     method="post"
                                                     action="<%= url('/admin/productos/' + producto.id + '/variantes/' + variante.variante_id + '/eliminar') %>"
-                                                >
+                                                    data-loader-on-submit
+                                                    >
                                                     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                                                     <input type="hidden" name="producto_id" value="<%= producto.id %>">
                                                     <input type="hidden" name="variante_id" value="<%= variante.variante_id %>">
@@ -234,6 +235,7 @@ const formatearPrecio = (valor) => {
         <%- include('../../../partials/admin/admin-footer') %>
     </div>
 
+    <%- include('../../../partials/admin/admin-loader') %>
     <%- include('../../../partials/admin/admin-scripts') %>
 </body>
 </html>

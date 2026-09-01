@@ -48,6 +48,23 @@ if (process.env.NODE_ENV === 'production') {
     }
 }
 
+const cloudinaryEnvironments = new Set(['production', 'testing', 'test']);
+
+if (cloudinaryEnvironments.has(String(process.env.NODE_ENV || '').toLowerCase())) {
+    const requiredCloudinaryVariables = [
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET'
+    ];
+    const missingCloudinaryVariables = requiredCloudinaryVariables.filter((key) => !process.env[key]);
+
+    if (missingCloudinaryVariables.length > 0) {
+        throw new Error(
+            `Faltan variables de Cloudinary requeridas: ${missingCloudinaryVariables.join(', ')}`
+        );
+    }
+}
+
 export function base_path(){
     return process.env.APP_URL.replace(/\/+$/, '');
 }

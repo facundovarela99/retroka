@@ -2,7 +2,7 @@ import { CategoryModel } from "../../Models/Category.model.js";
 import { AppError } from "../../Models/Error.model.js";
 import { validarCategoria } from "../../Services/Category.service.js";
 import { base_path, url } from "../../Config/Env.js";
-import { obtenerCsrfToken, esPeticionAjax, sessionMessage, getSessionMessage } from "../../Helpers.js";
+import { obtenerCsrfToken, esPeticionAjax, sessionMessage, getSessionMessage, validarCsrfToken } from "../../Helpers.js";
 
 const saveSession = (req) => new Promise((resolve, reject) => {
     req.session.save((error) => {
@@ -79,13 +79,23 @@ class CategoryController{
     }
     
     async store(req, res, next){
+        if (!validarCsrfToken(req)) {
+            if (esPeticionAjax(req)) {
+                return res.status(403).json({
+                    data:null,
+                    message: 'CSRF token invalido',
+                    redirectTo: url('/admin/categorias')
+                });
+            }
+
+            sessionMessage(req, 'CSRF token invalido', 'danger');
+            return res.redirect(303, url('/admin/categorias'));
+        }
+
         try {
             const categoria = validarCategoria(req.body);
             const resultado = await this.#categoryModel.create(categoria);
             const message = 'Categoría creada exitosamente';
-
-            sessionMessage(req, message, 'success');
-            await saveSession(req);
 
             if (esPeticionAjax(req)) {
                 return res.status(201).json({
@@ -95,6 +105,7 @@ class CategoryController{
                 });
             }
 
+            sessionMessage(req, message, 'success');
             return res.redirect(303, url('/admin/categorias'));
 
         } catch (error) {
@@ -153,8 +164,32 @@ class CategoryController{
 
     async delete(req, res){
         const id = req.body.id;
+
+        if (!validarCsrfToken(req)) {
+            if (esPeticionAjax(req)) {
+                return res.status(403).json({
+                    data:null,
+                    message: 'CSRF token invalido',
+                    redirectTo: url('/admin/categorias')
+                });
+            }
+
+            sessionMessage(req, 'CSRF token invalido', 'danger');
+            return res.redirect(303, url('/admin/categorias'));
+        }
         
-        if (!id) throw new AppError('Not Found', 'Categoría inexistente', 404);
+        if (!id){
+            if (esPeticionAjax(req)) {
+                return res.status(403).json({
+                    data:null,
+                    message: 'Categoría inexistente',
+                    redirectTo: url('/admin/categorias')
+                });
+            }
+
+            sessionMessage(req, 'Categoría inexistente', 'danger');
+            return res.redirect(303, url('/admin/categorias'));
+        }
 
         try {
             const relatedProducts = await this.#categoryModel.getRelatedProducts(id);
@@ -174,7 +209,8 @@ class CategoryController{
 
             if (esPeticionAjax(req)){
                 return res.status(200).json({
-                    message:'Cateogoría elimianda exitosamente'
+                    data: true,
+                    message:'Categoría eliminada exitosamente'
                 });
             }
 

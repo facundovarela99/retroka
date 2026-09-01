@@ -1,6 +1,9 @@
 const formulariosPublicarProducto = document.querySelectorAll('.form-publicar-producto');
 const categorias = await obtenerCategorias() ?? [];
 
+const loader = document.querySelector('[data-page-loader]');
+const pageContent = document.querySelector('[data-page-loader-content]');
+
 const form = document.createElement('form');
 
 const inputCsrf = document.createElement('input');
@@ -48,6 +51,7 @@ formulariosPublicarProducto.forEach(formulario => {
         });
 
         if (resultado.isConfirmed) {
+            showLoader(formulario);
             await publicarProducto(formulario, resultado.value);
         }
     });
@@ -101,3 +105,12 @@ async function publicarProducto(formulario, categoria) {
         window.location.reload();
     }
 }
+
+const showLoader = (form) => {
+    loader.hidden = false;
+    loader.setAttribute('aria-hidden', 'false');
+    form.setAttribute('aria-busy', 'true');
+    document.body.classList.add('page-loader-active');
+    pageContent?.setAttribute('inert', '');
+    loader.focus({ preventScroll: true });
+};

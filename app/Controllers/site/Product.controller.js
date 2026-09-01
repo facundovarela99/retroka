@@ -2,19 +2,19 @@ import { ProductModel } from '../../Models/Product.model.js';
 import { AppError } from '../../Models/Error.model.js';
 import { base_path, url } from '../../Config/Env.js';
 import { CartModel } from '../../Models/Cart.model.js';
-import { FileModel } from '../../Models/File.model.js';
+import { FileService } from '../../Services/File.service.js';
 import { obtenerCsrfToken } from '../../Helpers.js';
 import { sessionMessage, getSessionMessage } from '../../Helpers.js';
 
 export class ProductController {
     #productModel;
     #cartModel;
-    #fileModel;
+    #fileService;
 
     constructor(){
         this.#productModel = new ProductModel();
         this.#cartModel = new CartModel();
-        this.#fileModel = new FileModel();
+        this.#fileService = new FileService();
     }
 
     async index(req, res, next){
@@ -68,7 +68,7 @@ export class ProductController {
             const [variantes, imagenesProducto] = producto?.activo
                 ? await Promise.all([
                     this.#productModel.findStorefrontVariants([id]),
-                    this.#fileModel.findByProductId(id)
+                    this.#fileService.findByProductId(id)
                 ])
                 : [[], []];
 

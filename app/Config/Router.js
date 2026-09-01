@@ -6,7 +6,7 @@ import { productController as siteProductController } from '../Controllers/site/
 import { categoryController } from '../Controllers/admin/Category.controller.js';
 import { cartController } from '../Controllers/Cart.Controller.js';
 import { authRateLimit, requireCsrf } from '../Middleware/Auth.middleware.js';
-import { handleProductUploadError, uploadProductImages } from '../Middleware/Upload.middleware.js';
+import { handleProductUploadError, uploadProductImages } from '../Services/File.service.js';
 import { dashboardController } from '../Controllers/admin/Dashboard.controller.js';
 
 export const router = Router();
@@ -60,14 +60,6 @@ router.post('/admin/categorias/eliminar', isAdmin, requireCsrf, categoryControll
 router.get('/', siteProductController.index.bind(siteProductController));
 router.get('/productos', siteProductController.index.bind(siteProductController));
 router.get('/producto/:id', siteProductController.product.bind(siteProductController));
-
-
-// router.get('/categorias', categoryController.getAll.bind(categoryController));
-// router.get('/categoria/:id', categoryController.getAll.bind(categoryController));
-// router.post('/categorias/crear', isAdmin, requireCsrf, categoryController.create.bind(categoryController));
-// router.patch('/categorias/actualizar', isAdmin, requireCsrf, categoryController.update.bind(categoryController));
-// router.delete('/categorias/eliminar', isAdmin, requireCsrf, categoryController.delete.bind(categoryController));
-
 
 router.get('/carrito', requireAuth, cartController.getCart.bind(cartController));
 router.post('/carrito/crear', requireAuth, requireCsrf, cartController.create.bind(cartController));

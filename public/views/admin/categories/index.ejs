@@ -56,7 +56,7 @@ const usuarioAdmin = typeof user !== 'undefined' && user ? user : { email: '' };
                         <div class="card-header d-flex align-items-center gap-3">
                             <h2 id="categories-list-title" class="card-title mb-0">
                                 Categorias registradas
-                                <span class="badge text-bg-secondary ms-2"><%= listadoCategorias.length %></span>
+                                <span id="cantidad-categorias" class="badge text-bg-secondary ms-2"><%= listadoCategorias.length %></span>
                             </h2>
 
                             <a class="btn btn-primary btn-sm ms-auto" href="<%= url('/admin/categorias/crear') %>">
@@ -117,7 +117,7 @@ const usuarioAdmin = typeof user !== 'undefined' && user ? user : { email: '' };
                             <div class="card-body py-5 text-center">
                                 <i class="bi bi-tags fs-1 text-body-secondary" aria-hidden="true"></i>
                                 <p class="text-body-secondary mt-3 mb-3">No hay categorias registradas.</p>
-                                <a class="btn btn-primary" href="<%= url('/admin/categorias/nueva') %>">
+                                <a class="btn btn-primary" href="<%= url('/admin/categorias/crear') %>">
                                     <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
                                     Crear categoria
                                 </a>
@@ -171,11 +171,7 @@ const usuarioAdmin = typeof user !== 'undefined' && user ? user : { email: '' };
                     console.log('Resultado de eliminar la categoría: ', result);
                     if (!response.ok) throw new Error(result.message || 'No se pudo eliminar la categoria');
                     if (result.data) {
-                        const tr = document.getElementById(`tr-categoria-id-${id}`);
-                        if (tr) {
-                            tr.remove();
-                        }
-    
+
                         document.querySelector('.container-fluid-main').insertAdjacentHTML('afterbegin', `
                             <div class="alert alert-success alert-dismissible" role="alert">
                                 <div class="pe-4">
@@ -184,6 +180,32 @@ const usuarioAdmin = typeof user !== 'undefined' && user ? user : { email: '' };
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                             </div>
                         `);
+
+                        let cantidadCategorias = parseInt(document.getElementById('cantidad-categorias').textContent);
+                        document.getElementById('cantidad-categorias').innerHTML = cantidadCategorias - 1; 
+
+                        if (cantidadCategorias > 1){
+                            const row = document.getElementById(`tr-categoria-id-${id}`);
+                            if (row) {
+                                row.remove();
+                            }
+                        } else {
+                            const table = document.querySelector('.card-body');
+                            if (table) {
+                                table.remove();
+                            }
+    
+                            document.getElementById('categories-list').insertAdjacentHTML('beforeend', `
+                                <div class="card-body py-5 text-center">
+                                    <i class="bi bi-tags fs-1 text-body-secondary" aria-hidden="true"></i>
+                                    <p class="text-body-secondary mt-3 mb-3">No hay categorias registradas.</p>
+                                    <a class="btn btn-primary" href="<%= url('/admin/categorias/crear') %>">
+                                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                        Crear categoria
+                                    </a>
+                                </div>
+                            `);                    
+                        }
                     }
 
 

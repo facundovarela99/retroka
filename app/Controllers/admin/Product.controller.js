@@ -4,29 +4,13 @@ import { validarNuevoProducto, validarProductoActualizacion } from "../../Servic
 import { AppError } from "../../Models/Error.model.js";
 import { base_path, url } from "../../Config/Env.js";
 import { CartModel } from "../../Models/Cart.model.js";
-import { FileModel } from "../../Models/File.model.js";
 import { VariantModel } from "../../Models/Variant.model.js";
+import { FileService, MAX_PRODUCT_IMAGES } from "../../Services/File.service.js";
 import {
     validarActualizacionVariante,
     validarNuevaVariante
 } from "../../Services/Variant.service.js";
 import { obtenerCsrfToken, esPeticionAjax, validarCsrfToken, sessionMessage, getSessionMessage } from "../../Helpers.js";
-import { validateFile } from "secure-file-validator";
-import { MAX_PRODUCT_IMAGES, MAX_PRODUCT_IMAGE_SIZE } from "../../Middleware/Upload.middleware.js";
-import { promises as fs } from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const PRODUCT_UPLOADS_ROOT = path.resolve(__dirname, '../../../public/uploads');
-const MIME_TYPE_BY_EXTENSION = new Map([
-    ['.jpg', 'image/jpeg'],
-    ['.jpeg', 'image/jpeg'],
-    ['.png', 'image/png'],
-    ['.gif', 'image/gif'],
-    ['.svg', 'image/svg+xml']
-]);
 
 const consumeProductMessage = (req) => {
     const message = req.session?.product_message || null;
@@ -78,155 +62,19 @@ const saveSession = (req) => new Promise((resolve, reject) => {
     });
 });
 
-const productUploadDirectory = (productId) => {
-    if (!Number.isInteger(Number(productId)) || Number(productId) < 1) {
-        throw new AppError('Internal Server Error', 'Id de producto invalido para almacenar imagenes', 500);
-    }
-
-    const directory = path.resolve(PRODUCT_UPLOADS_ROOT, String(productId));
-
-    if (path.dirname(directory) !== PRODUCT_UPLOADS_ROOT) {
-        throw new AppError('Internal Server Error', 'Directorio de imagenes invalido', 500);
-    }
-
-    return directory;
-};
-
-const variantUploadDirectory = (productId, variantId) => {
-    if (!Number.isInteger(Number(variantId)) || Number(variantId) < 1) {
-        throw new AppError('Internal Server Error', 'Id de variante invalido para almacenar imagenes', 500);
-    }
-
-    const variantsRoot = path.resolve(productUploadDirectory(productId), 'variants');
-    const directory = path.resolve(variantsRoot, String(variantId));
-
-    if (path.dirname(directory) !== variantsRoot) {
-        throw new AppError('Internal Server Error', 'Directorio de imagenes de variante invalido', 500);
-    }
-
-    return directory;
-};
-
-const removeVariantUploadDirectory = async (productId, variantId) => {
-    const directory = variantUploadDirectory(productId, variantId);
-    await fs.rm(directory, { recursive: true, force: true });
-};
-
-const normalizeFileIds = (value) => {
-    const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
-    const ids = values.map(Number);
-
-    if (ids.some((id) => !Number.isInteger(id) || id < 1)) {
-        throw new AppError('Bad Request', 'La seleccion de imagenes no es valida', 400);
-    }
-
-    return [...new Set(ids)];
-};
-
-const removeStoredVariantFiles = async (files, productId, variantId) => {
-    const directory = variantUploadDirectory(productId, variantId);
-
-    await Promise.all(files.map(async (file) => {
-        const filename = path.basename(file.nombre || '');
-
-        if (!filename) return;
-
-        const filePath = path.resolve(directory, filename);
-
-        if (path.dirname(filePath) !== directory) {
-            throw new AppError('Internal Server Error', 'Ruta de imagen de variante invalida', 500);
-        }
-
-        try {
-            await fs.unlink(filePath);
-        } catch (error) {
-            if (error.code !== 'ENOENT') throw error;
-        }
-    }));
-};
-
-const validateProductImages = async (files) => {
-    if (!Array.isArray(files) || files.length === 0) {
-        return;
-    }
-
-    for (const file of files) {
-        const validation = await validateFile(file.path, {
-            maxSizeInBytes: MAX_PRODUCT_IMAGE_SIZE
-        });
-
-        if (!validation.status) {
-            throw new AppError(
-                'Bad Request',
-                `La imagen ${file.originalname} no es valida: ${validation.message}`,
-                400
-            );
-        }
-    }
-};
-
-const storeVariantImages = async (files, productId, variantId) => {
-    if (!Array.isArray(files) || files.length === 0) {
-        return [];
-    }
-
-    const directory = variantUploadDirectory(productId, variantId);
-    await fs.mkdir(directory, { recursive: true });
-    const storedPaths = [];
-
-    try {
-        const storedFiles = [];
-
-        for (const file of files) {
-            const filename = path.basename(file.filename);
-            const extension = path.extname(filename).toLowerCase();
-            const mimeType = MIME_TYPE_BY_EXTENSION.get(extension);
-
-            if (!mimeType) {
-                throw new AppError('Bad Request', `Formato de imagen no permitido: ${file.originalname}`, 400);
-            }
-
-            const destination = path.join(directory, filename);
-            await fs.rename(file.path, destination);
-            storedPaths.push(destination);
-
-            storedFiles.push({
-                url:`/uploads/${productId}/variants/${variantId}/${filename}`,
-                nombre:filename,
-                nombre_original:path.basename(file.originalname.replaceAll('\\', '/')),
-                mime_type:mimeType,
-                size:file.size
-            });
-        }
-
-        return storedFiles;
-    } catch (error) {
-        await Promise.all(storedPaths.map(async (storedPath) => {
-            try {
-                await fs.unlink(storedPath);
-            } catch (cleanupError) {
-                if (cleanupError.code !== 'ENOENT') {
-                    console.error('No se pudo limpiar una imagen nueva de variante:', cleanupError);
-                }
-            }
-        }));
-        throw error;
-    }
-};
-
 export class ProductController{
 
     #productModel
     #categoryController
     #cartModel
-    #fileModel
+    #fileService
     #variantModel
 
     constructor(){
         this.#productModel = new ProductModel();
         this.#categoryController = new CategoryModel();
         this.#cartModel = new CartModel();
-        this.#fileModel = new FileModel();
+        this.#fileService = new FileService();
         this.#variantModel = new VariantModel();
     }
 
@@ -306,7 +154,7 @@ export class ProductController{
 
             const [variantes, imagenes] = await Promise.all([
                 this.#productModel.findVariants(producto),
-                this.#fileModel.findByProductId(producto.id)
+                this.#fileService.findByProductId(producto.id)
             ]);
             const variantesConImagenes = variantes.map((variante) => ({
                 ...variante,
@@ -449,7 +297,7 @@ export class ProductController{
                 this.#variantModel.getSizes(),
                 this.#variantModel.findByProductId(productId)
             ]);
-            const productMessage = consumeProductMessage(req);
+            const productMessage = getSessionMessage(req);
             const formData = consumeVariantFormData(req, productId);
 
             res.set('Cache-Control', 'no-store');
@@ -496,6 +344,19 @@ export class ProductController{
         let insertedImages = [];
 
         try {
+            if (!validarCsrfToken(req)) {
+                if (esPeticionAjax(req)) {
+                    return res.status(403).json({
+                        data:null,
+                        message: 'CSRF token invalido',
+                        redirectTo: url('/admin/productos')
+                    });
+                }
+
+                sessionMessage(req, 'CSRF token invalido', 'danger');
+                return res.redirect(303, url('/admin/productos'));
+            }
+
             if (!Number.isInteger(productId) || productId < 1) {
                 throw new AppError('Bad Request', 'Id de producto invalido', 400);
             }
@@ -505,17 +366,14 @@ export class ProductController{
             const producto = await this.#productModel.findByID(productId);
 
             if (!producto) {
-                throw new AppError('Not Found', 'Producto inexistente', 404);
+                sessionMessage(req, 'Producto inexistente', 'danger');
+                return res.redirect(303, url('/admin/productos'));
             }
 
             productExists = true;
 
-            if (!validarCsrfToken(req)) {
-                throw new AppError('Forbidden', 'CSRF token invalido', 403);
-            }
-
             const receivedFiles = Array.isArray(req.files) ? req.files : [];
-            await validateProductImages(receivedFiles);
+            await this.#fileService.validateProductImages(receivedFiles);
 
             const variante = validarNuevaVariante({
                 ...req.body,
@@ -530,7 +388,7 @@ export class ProductController{
 
             const result = await this.#variantModel.create(productId, variante);
             createdVariant = result;
-            const currentImages = await this.#fileModel.findByVariantId(productId, result.id);
+            const currentImages = await this.#fileService.findByVariantId(productId, result.id);
 
             if (currentImages.length + receivedFiles.length > MAX_PRODUCT_IMAGES) {
                 throw new AppError(
@@ -540,8 +398,8 @@ export class ProductController{
                 );
             }
 
-            storedImages = await storeVariantImages(receivedFiles, productId, result.id);
-            insertedImages = await this.#fileModel.createManyForVariant(
+            storedImages = await this.#fileService.storeVariantImages(receivedFiles, productId, result.id);
+            insertedImages = await this.#fileService.createManyForVariant(
                 productId,
                 result.id,
                 storedImages
@@ -565,13 +423,14 @@ export class ProductController{
                 type:'success',
                 message:response.message
             };
+            sessionMessage(req, 'Variante creada exitosamente', 'success');
             await saveSession(req);
 
             return res.redirect(303, productUrl);
         } catch (error) {
             if (insertedImages.length > 0 && createdVariant) {
                 try {
-                    await this.#fileModel.deleteManyForVariant(
+                    await this.#fileService.deleteManyForVariant(
                         productId,
                         createdVariant.id,
                         insertedImages.map((image) => image.id)
@@ -583,7 +442,7 @@ export class ProductController{
 
             if (storedImages.length > 0 && createdVariant) {
                 try {
-                    await removeStoredVariantFiles(storedImages, productId, createdVariant.id);
+                    await this.#fileService.removeStoredVariantFiles(storedImages, productId, createdVariant.id);
                 } catch (rollbackError) {
                     console.error('No se pudieron revertir los archivos de la variante:', rollbackError);
                 }
@@ -636,9 +495,9 @@ export class ProductController{
                 this.#variantModel.findByID(productId, variantId),
                 this.#variantModel.getSizes(),
                 this.#variantModel.findByProductId(productId),
-                this.#fileModel.findByVariantId(productId, variantId)
+                this.#fileService.findByVariantId(productId, variantId)
             ]);
-            const productMessage = consumeProductMessage(req);
+            const productMessage = getSessionMessage(req);
             const formData = consumeVariantFormData(req, productId, variantId);
 
             res.set('Cache-Control', 'no-store');
@@ -691,6 +550,19 @@ export class ProductController{
         let insertedImages = [];
 
         try {
+            if (!validarCsrfToken(req)) {
+                if (esPeticionAjax(req)) {
+                    return res.status(403).json({
+                        data:null,
+                        message:'CSRF token invalido',
+                        redirectTo:productUrl
+                    });
+                }
+
+                sessionMessage(req, 'CSRF token invalido', 'danger');
+                return res.redirect(303, productUrl);
+            }
+
             if (!Number.isInteger(productId) || productId < 1) {
                 throw new AppError('Bad Request', 'Id de producto invalido', 400);
             }
@@ -705,7 +577,8 @@ export class ProductController{
             const producto = await this.#productModel.findByID(productId);
 
             if (!producto) {
-                throw new AppError('Not Found', 'Producto inexistente', 404);
+                sessionMessage(req, 'Producto inexistente', 'danger');
+                return res.redirect(303, url('/admin/productos'));
             }
 
             productExists = true;
@@ -713,16 +586,12 @@ export class ProductController{
             await this.#variantModel.findByID(productId, variantId);
             variantExists = true;
 
-            if (!validarCsrfToken(req)) {
-                throw new AppError('Forbidden', 'CSRF token invalido', 403);
-            }
-
             const receivedFiles = Array.isArray(req.files) ? req.files : [];
-            await validateProductImages(receivedFiles);
+            await this.#fileService.validateProductImages(receivedFiles);
 
-            const currentImages = await this.#fileModel.findByVariantId(productId, variantId);
-            const imageIdsToDelete = normalizeFileIds(req.body?.eliminar_imagenes);
-            const imagesToDelete = await this.#fileModel.findVariantFilesByIds(
+            const currentImages = await this.#fileService.findByVariantId(productId, variantId);
+            const imageIdsToDelete = this.#fileService.normalizeFileIds(req.body?.eliminar_imagenes);
+            const imagesToDelete = await this.#fileService.findVariantFilesByIds(
                 productId,
                 variantId,
                 imageIdsToDelete
@@ -753,16 +622,16 @@ export class ProductController{
             }
 
             const result = await this.#variantModel.update(productId, variantId, variante);
-            storedImages = await storeVariantImages(receivedFiles, productId, variantId);
-            insertedImages = await this.#fileModel.createManyForVariant(
+            storedImages = await this.#fileService.storeVariantImages(receivedFiles, productId, variantId);
+            insertedImages = await this.#fileService.createManyForVariant(
                 productId,
                 variantId,
                 storedImages
             );
 
             if (imageIdsToDelete.length > 0) {
-                await this.#fileModel.deleteManyForVariant(productId, variantId, imageIdsToDelete);
-                await removeStoredVariantFiles(imagesToDelete, productId, variantId).catch((fileError) => {
+                await this.#fileService.deleteManyForVariant(productId, variantId, imageIdsToDelete);
+                await this.#fileService.removeStoredVariantFiles(imagesToDelete, productId, variantId).catch((fileError) => {
                     console.error('No se pudieron eliminar archivos antiguos de la variante:', fileError);
                 });
             }
@@ -778,21 +647,18 @@ export class ProductController{
                 redirectTo:editUrl
             };
 
+            console.log('Variante actualizada exitosamente:', response);
+
             if (esPeticionAjax(req)) {
                 return res.status(200).json(response);
             }
 
-            req.session.product_message = {
-                type:'success',
-                message:response.message
-            };
-            await saveSession(req);
-
+            sessionMessage(req, 'Variante actualizada exitosamente', 'success');
             return res.redirect(303, editUrl);
         } catch (error) {
             if (insertedImages.length > 0) {
                 try {
-                    await this.#fileModel.deleteManyForVariant(
+                    await this.#fileService.deleteManyForVariant(
                         productId,
                         variantId,
                         insertedImages.map((image) => image.id)
@@ -804,7 +670,7 @@ export class ProductController{
 
             if (storedImages.length > 0) {
                 try {
-                    await removeStoredVariantFiles(storedImages, productId, variantId);
+                    await this.#fileService.removeStoredVariantFiles(storedImages, productId, variantId);
                 } catch (rollbackError) {
                     console.error('No se pudieron revertir los archivos nuevos de la variante:', rollbackError);
                 }
@@ -828,6 +694,23 @@ export class ProductController{
             ? url(`/admin/productos/${productId}`)
             : url('/admin/productos');
         let productExists = false;
+
+        if (!validarCsrfToken(req)) {
+            if (esPeticionAjax(req)) {
+                return res.status(403).json({
+                    data:null,
+                    message:'CSRF token invalido',
+                    redirectTo:productUrl
+                });
+            }
+
+            sessionMessage(req, 'CSRF token invalido', 'danger');
+            return res.redirect(303, productUrl);
+        }
+
+        if (validarCsrfToken(req)){
+            console.log('CSRF token valido');
+        }
 
         try {
             if (!Number.isInteger(productId) || productId < 1) {
@@ -855,8 +738,9 @@ export class ProductController{
                 throw new AppError('Forbidden', 'CSRF token invalido', 403);
             }
 
+            const variantImages = await this.#fileService.findByVariantId(productId, variantId);
             await this.#variantModel.hardDelete(productId, variantId);
-            await removeVariantUploadDirectory(productId, variantId);
+            await this.#fileService.removeVariantStorage(variantImages, productId, variantId);
 
             const response = {
                 data:{ id:variantId, producto_id:productId },
