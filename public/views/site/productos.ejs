@@ -5,21 +5,6 @@ const productosVisibles = esAdministrador
     ? productosDisponibles
     : productosDisponibles.filter((producto) => producto.categoria !== null && producto.categoria !== undefined);
 const imagenGenerica = '/assets/img/product-placeholder.svg';
-
-const obtenerImagenProducto = (producto) => {
-    const candidatos = [producto.imagen_archivo, producto.imagen, producto.url];
-    const imagen = candidatos.find((valor) => {
-        if (typeof valor !== 'string' || valor.trim().length === 0) return false;
-
-        const referencia = valor.trim();
-        return /^(?:https?:\/\/|\/|data:image\/)/i.test(referencia)
-            || /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i.test(referencia);
-    });
-
-    return imagen ? imagen.trim() : imagenGenerica;
-};
-
-
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -31,13 +16,18 @@ const obtenerImagenProducto = (producto) => {
     <main class="products-main w-100 mx-auto">
 
         <% if (product_message?.message) { %>
-            <div
-                class="alert <%= product_message.type === 'success' ? 'alert-success' : 'alert-danger' %>"
-                role="status"
-            >
+        <div
+            class="alert <%= product_message.type === 'success' ? 'alert-success' : 'alert-danger' %> alert-dismissible"
+            role="alert"
+        >
+            <div class="pe-4">
                 <%= product_message.message %>
             </div>
+
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
         <% } %>
+
 
         <% if (auth_message !== null && auth_message?.message) { %>
             <div
@@ -77,8 +67,9 @@ const obtenerImagenProducto = (producto) => {
                 <div class="row g-4" role="list">
                     <% productosVisibles.forEach((producto) => { %>
                         <%
-                        const imagenProducto = obtenerImagenProducto(producto);
-                        const usaImagenGenerica = imagenProducto === imagenGenerica;
+                        const variantesProducto = Array.isArray(producto.variantes)
+                            ? producto.variantes
+                            : [];
                         const categoriaProducto = producto.categoria_producto || producto.categoria || 'Sin categoría';
                         const productoSinStock = Number.parseInt(producto.stock, 10) <= 0;
                         %>
@@ -88,28 +79,49 @@ const obtenerImagenProducto = (producto) => {
                                 aria-labelledby="product-name-<%= producto.id %>"
                             >
 
-                                <a
-                                    class="product-image-link d-block text-decoration-none"
-                                    href="<%= url('/producto/' + producto.id) %>"
-                                    aria-label="<%= esAdministrador ? 'Editar' : 'Ver' %> <%= producto.nombre %>"
-                                >
-                                    <div class="product-image-container position-relative overflow-hidden">
-                                        <img
-                                            class="product-image w-100 h-100<%= usaImagenGenerica ? ' product-image-placeholder' : '' %>"
-                                            src="<%= imagenProducto %>"
-                                            alt="<%= usaImagenGenerica ? 'Producto sin imagen: ' : '' %><%= producto.nombre %>"
-                                            loading="lazy"
-                                            decoding="async"
-                                            onerror="this.onerror=null;this.src='<%= imagenGenerica %>';this.classList.add('product-image-placeholder')"
-                                        >
-
-                                        <% if (esAdministrador) { %>
-                                            <span class="product-badge product-badge-new position-absolute">
-                                                Editar
-                                            </span>
-                                        <% } %>
+                                <div class="product-variant-preview-grid product-variant-carousel" data-carousel aria-label="Imágenes de <%= producto.nombre %>">
+                                    <div class="product-variant-track" data-track>
+                                        <% const slides = variantesProducto.length > 0 ? variantesProducto : [{ imagen_archivo: imagenGenerica, color: '', talle: '' }]; %>
+                                        <% slides.forEach((variante) => { %>
+                                            <% const imagenVariante = variante.imagen_archivo || imagenGenerica; %>
+                                            <% const altText = `${producto.nombre}${variante.color ? `, ${variante.color}` : ''}${variante.talle ? `, talle ${variante.talle}` : ''}`; %>
+                                            <a
+                                                class="product-variant-preview-item product-variant-slide"
+                                                href="<%= url('/producto/' + producto.id) %>"
+                                                aria-label="<%= esAdministrador ? 'Editar' : 'Ver' %> <%= altText %>"
+                                                title="<%= altText %>"
+                                            >
+                                                <img
+                                                    class="product-image <%= imagenVariante === imagenGenerica ? 'product-image-placeholder' : '' %>"
+                                                    src="<%= imagenVariante %>"
+                                                    alt="<%= altText %>"
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                    onerror="this.onerror=null;this.src='<%= imagenGenerica %>';this.classList.add('product-image-placeholder')"
+                                                >
+                                            </a>
+                                        <% }) %>
                                     </div>
-                                </a>
+
+                                    <% if (slides.length > 1) { %>
+                                        <button
+                                            type="button"
+                                            class="product-carousel-button product-carousel-prev"
+                                            data-direction="prev"
+                                            aria-label="Ver imagen anterior"
+                                        >
+                                            <span aria-hidden="true">‹</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="product-carousel-button product-carousel-next"
+                                            data-direction="next"
+                                            aria-label="Ver imagen siguiente"
+                                        >
+                                            <span aria-hidden="true">›</span>
+                                        </button>
+                                    <% } %>
+                                </div>
 
                                 <div class="product-content d-flex flex-column flex-grow-1">
                                     <div class="product-category text-uppercase">
@@ -127,18 +139,15 @@ const obtenerImagenProducto = (producto) => {
                                     </p>
 
                                     <div class="product-actions mt-auto d-flex align-items-center justify-content-between gap-3">
-                                        <span class="product-price">
-                                            $<%= producto.precio %>
-                                        </span>
 
-                                        <button
-                                            class="add-cart-button btn-agregar-al-carrito"
-                                            type="button"
-                                            data-producto="<%= JSON.stringify(producto) %>"
-                                            <%= productoSinStock ? 'disabled' : '' %>
+                                        <a
+                                            href="<%= url('/producto/' + producto.id) %>"
+                                            class="add-cart-button"
+                                            style="flex: 1 1 auto; text-align: center; text-decoration: none;"
+                                            aria-label="Ver <%= producto.nombre %><%= productoSinStock ? ', sin stock' : '' %>"
                                         >
-                                            <%= productoSinStock ? 'Sin stock' : 'Agregar al carro' %>
-                                        </button>
+                                            <%= productoSinStock ? 'Sin stock' : 'Ver producto' %>
+                                        </a>
                                     </div>
                                 </div>
 
@@ -163,5 +172,59 @@ const obtenerImagenProducto = (producto) => {
     <%- include('../../partials/site/sidebar') %>
     <%- include('../../partials/site/initial-state') %>
     <script type="module" defer src="/assets/js/carrito.js"></script>
+    <script>
+        document.querySelectorAll('[data-carousel]').forEach((carousel) => {
+            const track = carousel.querySelector('[data-track]');
+            const prevButton = carousel.querySelector('[data-direction="prev"]');
+            const nextButton = carousel.querySelector('[data-direction="next"]');
+
+            if (!track || (!prevButton && !nextButton)) {
+                return;
+            }
+
+            const slides = Array.from(track.children);
+            const getCurrentIndex = () => {
+                const firstSlide = slides[0];
+                if (!firstSlide) return 0;
+
+                const slideWidth = firstSlide.getBoundingClientRect().width;
+                if (!slideWidth) return 0;
+
+                return Math.round(track.scrollLeft / slideWidth);
+            };
+
+            const move = (direction) => {
+                if (slides.length === 0) return;
+
+                const firstSlide = slides[0];
+                const slideWidth = firstSlide.getBoundingClientRect().width;
+                if (!slideWidth) return;
+
+                const totalSlides = slides.length;
+                const currentIndex = getCurrentIndex();
+                let nextIndex = currentIndex + direction;
+
+                if (nextIndex >= totalSlides) nextIndex = 0;
+                if (nextIndex < 0) nextIndex = totalSlides - 1;
+
+                track.scrollTo({
+                    left: nextIndex * slideWidth,
+                    behavior: 'smooth'
+                });
+            };
+
+            prevButton?.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                move(-1);
+            });
+
+            nextButton?.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                move(1);
+            });
+        });
+    </script>
 </body>
 </html>

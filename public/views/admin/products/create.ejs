@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
-<%- include('../../partials/admin/admin-meta') %>
+<%- include('../../../partials/admin/admin-meta') %>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
-        <%- include('../../partials/admin/admin-navbar') %>
-        <%- include('../../partials/admin/admin-sidebar', { activePage: 'create-product' }) %>
+        <%- include('../../../partials/admin/admin-navbar') %>
+        <%- include('../../../partials/admin/admin-sidebar', { activePage: 'create-product' }) %>
 
         <main class="app-main">
             <div class="app-content-header">
@@ -27,7 +27,7 @@
 
             <div class="app-content">
                 <div class="container-fluid">
-                    <%- include('../../partials/admin/product-message') %>
+                    <%- include('../../../partials/admin/product-message') %>
 
                     <div class="row justify-content-center">
                         <div class="col-12 col-xl-9">
@@ -35,7 +35,6 @@
                                 id="form-create-product"
                                 method="post"
                                 action="<%= url('/admin/productos/crear') %>"
-                                enctype="multipart/form-data"
                             >
                                 <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
 
@@ -85,67 +84,6 @@
                                                 ><%= form_data.descripcion || '' %></textarea>
                                             </div>
 
-                                            <div class="col-12 col-sm-4">
-                                                <label for="size" class="form-label">Talle</label>
-                                                <select name="talle" class="form-select" id="size" required>
-                                                    <option value="" <%= form_data.talle ? '' : 'selected' %> disabled>
-                                                        Seleccionar talle
-                                                    </option>
-                                                    <% talles.forEach((talle) => { %>
-                                                        <option
-                                                            value="<%= talle.id %>"
-                                                            <%= String(form_data.talle || '') === String(talle.id) ? 'selected' : '' %>
-                                                        ><%= talle.tipo %></option>
-                                                    <% }) %>
-                                                </select>
-                                            </div>
-
-                                            <div class="col-12 col-sm-4">
-                                                <label for="stock" class="form-label">Stock</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text"><i class="bi bi-boxes" aria-hidden="true"></i></span>
-                                                    <input
-                                                        type="number"
-                                                        name="stock"
-                                                        class="form-control"
-                                                        id="stock"
-                                                        min="0"
-                                                        step="1"
-                                                        value="<%= form_data.stock ?? '' %>"
-                                                        required
-                                                    >
-                                                </div>
-                                            </div>
-
-                                            <div class="col-12 col-sm-4">
-                                                <label for="price" class="form-label">Precio</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text">$</span>
-                                                    <input
-                                                        type="number"
-                                                        name="precio"
-                                                        class="form-control"
-                                                        id="price"
-                                                        min="0"
-                                                        step="0.01"
-                                                        value="<%= form_data.precio ?? '' %>"
-                                                        required
-                                                    >
-                                                </div>
-                                            </div>
-
-                                            <div class="col-12">
-                                                <label for="images" class="form-label">Imagenes</label>
-                                                <input
-                                                    type="file"
-                                                    class="form-control"
-                                                    id="images"
-                                                    name="imagenes"
-                                                    accept="image/jpeg,image/png,image/gif,image/svg+xml,.jpg,.jpeg,.png,.gif,.svg"
-                                                    multiple
-                                                >
-                                                <div class="form-text">Hasta 8 imagenes de 5 MB cada una.</div>
-                                            </div>
                                         </div>
                                     </div>
 
@@ -164,9 +102,9 @@
             </div>
         </main>
 
-        <%- include('../../partials/admin/admin-footer') %>
+        <%- include('../../../partials/admin/admin-footer') %>
     </div>
 
-    <%- include('../../partials/admin/admin-scripts') %>
+    <%- include('../../../partials/admin/admin-scripts') %>
 </body>
 </html>

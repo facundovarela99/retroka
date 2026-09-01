@@ -1398,6 +1398,46 @@
     background-color: var(--retroka-surface-variant);
 }
 
+.product-variant-preview-grid,
+.product-variant-carousel {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    background-color: var(--retroka-surface-variant);
+}
+
+.product-variant-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.product-variant-track::-webkit-scrollbar {
+    display: none;
+}
+
+.product-variant-preview-item,
+.product-variant-slide {
+    position: relative;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    display: block;
+    scroll-snap-align: start;
+    text-decoration: none;
+    border-right: 0;
+}
+
+.product-variant-preview-item .product-image,
+.product-variant-slide .product-image {
+    width: 100%;
+    height: 100%;
+}
 
 .product-image {
     display: block;
@@ -1405,6 +1445,38 @@
     object-fit: cover;
 
     transition: transform 0.5s ease;
+}
+
+.product-carousel-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(17, 17, 17, 0.78);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.6rem;
+    line-height: 1;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.product-carousel-button:hover {
+    transform: translateY(-50%) scale(1.05);
+}
+
+.product-carousel-prev {
+    left: 10px;
+}
+
+.product-carousel-next {
+    right: 10px;
 }
 
 
@@ -2183,6 +2255,10 @@
    PRODUCT IMAGE
 ======================================== */
 
+.product-gallery {
+    position: relative;
+}
+
 .product-main-image-container {
     width: 100%;
 
@@ -2191,6 +2267,40 @@
     background-color: var(--retroka-surface-container-lowest);
 }
 
+.product-gallery-control {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(17, 17, 17, 0.75);
+    color: #fff;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: opacity 0.2s ease;
+}
+
+.product-gallery-control:hover {
+    opacity: 0.9;
+}
+
+.product-gallery-control-prev {
+    left: 12px;
+}
+
+.product-gallery-control-next {
+    right: 12px;
+}
+
+.product-gallery-control span {
+    font-size: 2rem;
+    line-height: 1;
+}
 
 .product-main-image {
     display: block;
@@ -2213,6 +2323,38 @@
     object-fit: contain;
 
     transform: none;
+}
+
+.product-gallery-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.product-gallery-thumb {
+    width: 72px;
+    height: 72px;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid var(--retroka-outline-variant);
+    background: transparent;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-gallery-thumb:hover,
+.product-gallery-thumb.active {
+    border-color: var(--retroka-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.product-gallery-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 
@@ -2338,6 +2480,58 @@
     padding-bottom: 24px;
 
     border-color: var(--retroka-outline-variant) !important;
+}
+
+.product-option-group + .product-option-group {
+    margin-top: 24px;
+}
+
+.product-color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.product-color-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    gap: 8px;
+    background-color: transparent;
+    border: 1px solid var(--retroka-outline-variant);
+    border-radius: 0;
+    color: var(--retroka-on-surface-variant);
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.product-color-button:hover,
+.product-color-button.active {
+    border-color: var(--retroka-primary);
+    color: var(--retroka-primary);
+}
+
+.product-color-button.active {
+    background-color: var(--retroka-surface-container-low);
+    box-shadow: inset 0 0 0 1px var(--retroka-primary);
+}
+
+.product-color-button:focus-visible {
+    outline: 2px solid var(--retroka-primary);
+    outline-offset: 3px;
+}
+
+.product-color-swatch {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border: 1px solid var(--retroka-outline);
+    border-radius: 50%;
 }
 
 

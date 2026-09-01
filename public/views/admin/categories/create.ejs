@@ -1,0 +1,147 @@
+<%
+const datosFormulario = typeof form_data !== 'undefined' && form_data ? form_data : {};
+const mensajeCategoria = typeof category_message !== 'undefined' ? category_message : null;
+const tokenCsrf = typeof csrf_token === 'string' ? csrf_token : '';
+const usuarioAdmin = typeof user !== 'undefined' && user ? user : { email: '' };
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../../partials/admin/admin-navbar', { user: usuarioAdmin, csrf_token: tokenCsrf }) %>
+        <%- include('../../../partials/admin/admin-sidebar', { activePage: 'categories' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center gy-2">
+                        <div class="col-sm-6">
+                            <h1 class="mb-0 fs-3">Nueva categoria</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-end mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="<%= url('/admin/categorias') %>">Categorias</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Nueva</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid pb-4">
+                    <% if (typeof category_message !== 'undefined' && category_message?.message) { %>
+                        <div
+                            class="alert <%= category_message.type === 'success' ? 'alert-success' : 'alert-danger' %> alert-dismissible"
+                            role="alert"
+                        >
+                            <div class="pe-4">
+                                <%= category_message.message %>
+                            </div>
+
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    <% } %>
+
+                    <div id="category-form-feedback" class="alert d-none" role="alert" aria-live="polite"></div>
+
+                    <div class="row justify-content-center">
+                        <div class="col-12 col-lg-7 col-xl-6">
+                            <form
+                                id="form-create-category"
+                                method="post"
+                                action="<%= url('/admin/categorias/guardar') %>"
+                                data-success-url="<%= url('/admin/categorias') %>"
+                            >
+                                <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+
+                                <section class="card card-primary card-outline" aria-labelledby="create-category-title">
+                                    <div class="card-header">
+                                        <h2 id="create-category-title" class="card-title">Informacion de la categoria</h2>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <label for="category-name" class="form-label">Nombre</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="bi bi-tag" aria-hidden="true"></i>
+                                            </span>
+                                            <input
+                                                type="text"
+                                                name="nombre"
+                                                class="form-control"
+                                                id="category-name"
+                                                maxlength="100"
+                                                value="<%= datosFormulario.nombre || '' %>"
+                                                autocomplete="off"
+                                                autofocus
+                                                required
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer d-flex justify-content-end gap-2">
+                                        <a class="btn btn-secondary" href="<%= url('/admin/categorias') %>">Cancelar</a>
+                                        <button class="btn btn-primary" type="submit">
+                                            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>
+                                            Crear categoria
+                                        </button>
+                                    </div>
+                                </section>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../../partials/admin/admin-scripts') %>
+    <script>
+        (() => {
+            const form = document.getElementById('form-create-category');
+            const feedback = document.getElementById('category-form-feedback');
+
+            if (!form || !feedback) return;
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const submitButton = form.querySelector('[type="submit"]');
+                submitButton.disabled = true;
+                feedback.className = 'alert d-none';
+
+                try {
+                    const response = await fetch(form.action, {
+                        method:'POST',
+                        headers:{
+                            Accept:'application/json',
+                            'X-Requested-With':'XMLHttpRequest'
+                        },
+                        body:new URLSearchParams(new FormData(form))
+                    });
+                    const result = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        console.log(result);
+                        throw new Error(result.message || 'No se pudo crear la categoria');
+                    }
+
+                    window.location.assign(form.dataset.successUrl);
+                } catch (error) {
+                    console.error(error);
+                    feedback.textContent = error.message;
+                    feedback.className = 'alert alert-danger';
+                } finally {
+                    submitButton.disabled = false;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

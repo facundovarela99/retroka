@@ -13,6 +13,7 @@ export class VariantModel {
                     pv.producto_id,
                     pv.talle_id,
                     t.tipo AS talle,
+                    pv.color,
                     pv.stock,
                     pv.precio,
                     pv.activo
@@ -37,6 +38,7 @@ export class VariantModel {
                     pv.producto_id,
                     pv.talle_id,
                     t.tipo AS talle,
+                    pv.color,
                     pv.stock,
                     pv.precio,
                     pv.activo
@@ -104,17 +106,19 @@ export class VariantModel {
             const [existingRows] = await connection.execute(
                 `SELECT id, activo
                 FROM ${this.#table}
-                WHERE producto_id = ? AND talle_id = ?
+                WHERE producto_id = ?
+                    AND talle_id = ?
+                    AND TRIM(COALESCE(color, '')) = ?
                 ORDER BY activo DESC, id
                 LIMIT 1;`,
-                [productId, body.talle]
+                [productId, body.talle, body.color]
             );
             const existingVariant = existingRows[0];
 
             if (existingVariant?.activo) {
                 throw new AppError(
                     'Conflict',
-                    'El producto ya posee una variante activa para ese talle',
+                    'El producto ya posee una variante activa para ese talle y color',
                     409
                 );
             }
@@ -122,9 +126,9 @@ export class VariantModel {
             if (existingVariant) {
                 await connection.execute(
                     `UPDATE ${this.#table}
-                    SET stock = ?, precio = ?, activo = 1
+                    SET stock = ?, precio = ?, color = ?, activo = 1
                     WHERE id = ? AND producto_id = ?;`,
-                    [body.stock, body.precio, existingVariant.id, productId]
+                    [body.stock, body.precio, body.color, existingVariant.id, productId]
                 );
 
                 await connection.commit();
@@ -133,6 +137,7 @@ export class VariantModel {
                     id:existingVariant.id,
                     producto_id:productId,
                     talle_id:body.talle,
+                    color:body.color,
                     stock:body.stock,
                     precio:body.precio,
                     activo:1,
@@ -142,9 +147,9 @@ export class VariantModel {
 
             const [result] = await connection.execute(
                 `INSERT INTO ${this.#table}
-                    (producto_id, talle_id, stock, precio, activo)
-                VALUES (?, ?, ?, ?, 1);`,
-                [productId, body.talle, body.stock, body.precio]
+                    (producto_id, talle_id, color, stock, precio, activo)
+                VALUES (?, ?, ?, ?, ?, 1);`,
+                [productId, body.talle, body.color, body.stock, body.precio]
             );
 
             await connection.commit();
@@ -153,6 +158,7 @@ export class VariantModel {
                 id:result.insertId,
                 producto_id:productId,
                 talle_id:body.talle,
+                color:body.color,
                 stock:body.stock,
                 precio:body.precio,
                 activo:1,
@@ -185,7 +191,7 @@ export class VariantModel {
             );
 
             const [rows] = await connection.execute(
-                `SELECT id, talle_id, stock, precio
+                `SELECT id, talle_id, color, stock, precio
                 FROM ${this.#table}
                 WHERE id = ? AND producto_id = ? AND activo = 1
                 LIMIT 1;`,
@@ -197,22 +203,28 @@ export class VariantModel {
                 throw new AppError('Not Found', 'Variante de producto inexistente', 404);
             }
 
-            if (body.talle !== undefined && body.talle !== currentVariant.talle_id) {
+            const nextSize = body.talle ?? currentVariant.talle_id;
+            const nextColor = body.color ?? currentVariant.color ?? '';
+            const identityChanged = nextSize !== currentVariant.talle_id
+                || nextColor.toLocaleLowerCase() !== String(currentVariant.color || '').toLocaleLowerCase();
+
+            if (identityChanged) {
                 const [duplicates] = await connection.execute(
                     `SELECT id
                     FROM ${this.#table}
                     WHERE producto_id = ?
                         AND talle_id = ?
+                        AND TRIM(COALESCE(color, '')) = ?
                         AND activo = 1
                         AND id <> ?
                     LIMIT 1;`,
-                    [productId, body.talle, variantId]
+                    [productId, nextSize, nextColor, variantId]
                 );
 
                 if (duplicates.length > 0) {
                     throw new AppError(
                         'Conflict',
-                        'El producto ya posee una variante activa para ese talle',
+                        'El producto ya posee una variante activa para ese talle y color',
                         409
                     );
                 }
@@ -222,6 +234,7 @@ export class VariantModel {
             const values = [];
             const fieldMap = {
                 talle_id:body.talle,
+                color:body.color,
                 stock:body.stock,
                 precio:body.precio
             };
@@ -249,6 +262,7 @@ export class VariantModel {
                 id:variantId,
                 producto_id:productId,
                 talle_id:body.talle ?? currentVariant.talle_id,
+                color:body.color ?? currentVariant.color,
                 stock:body.stock ?? currentVariant.stock,
                 precio:body.precio ?? currentVariant.precio,
                 activo:1
@@ -264,11 +278,31 @@ export class VariantModel {
         }
     }
 
-    async delete(productId, variantId){
+    async softDelete(productId, variantId){
         try {
             const [result] = await pool.execute(
                 `UPDATE ${this.#table}
                 SET activo = 0
+                WHERE id = ? AND producto_id = ? AND activo = 1;`,
+                [variantId, productId]
+            );
+
+            if (result.affectedRows === 0) {
+                throw new AppError('Not Found', 'Variante de producto inexistente', 404);
+            }
+
+            return result;
+        } catch (error) {
+            throw error instanceof AppError
+                ? error
+                : new AppError('Internal Server Error', error.message, 500);
+        }
+    }
+
+    async hardDelete(productId, variantId){
+        try {
+            const [result] = await pool.execute(
+                `DELETE FROM ${this.#table}
                 WHERE id = ? AND producto_id = ? AND activo = 1;`,
                 [variantId, productId]
             );

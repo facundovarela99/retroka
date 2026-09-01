@@ -5,76 +5,65 @@ import {
     validarProductoActualizacion
 } from '../app/Services/Product.service.js';
 
-const validProduct = {
-    nombre: 'remera urbana',
-    descripcion: 'remera de prueba',
-    talle: '2',
-    stock: '5',
-    precio: '1250.50',
-    categoria: '1',
-    imagenes: ['/uploads/42/550e8400-e29b-41d4-a716-446655440000.png']
-};
-
-test('el producto nuevo normaliza numeros y acepta varias URLs internas', () => {
+test('el producto padre normaliza sus datos descriptivos', () => {
     const result = validarNuevoProducto({
-        ...validProduct,
-        imagenes: [
-            validProduct.imagenes[0],
-            '/uploads/42/6ba7b810-9dad-41d1-80b4-00c04fd430c8.jpg'
-        ]
-    });
-
-    assert.equal(result.talle, 2);
-    assert.equal(result.stock, 5);
-    assert.equal(result.precio, 1250.5);
-    assert.equal(result.categoria, 1);
-    assert.equal(result.imagenes.length, 2);
-});
-
-test('el producto nuevo rechaza URLs externas o fuera de uploads', () => {
-    assert.throws(
-        () => validarNuevoProducto({
-            ...validProduct,
-            imagenes: ['https://example.com/imagen.png']
-        }),
-        /directorio de productos/
-    );
-});
-
-test('el producto nuevo limita la cantidad de imagenes', () => {
-    assert.throws(
-        () => validarNuevoProducto({
-            ...validProduct,
-            imagenes: Array.from(
-                { length: 9 },
-                (_, index) => `/uploads/42/550e8400-e29b-41d4-a716-44665544000${index}.png`
-            )
-        }),
-        /hasta 8 imagenes/
-    );
-});
-
-test('la actualizacion normaliza talle, stock, precio y categoria', () => {
-    const result = validarProductoActualizacion({
-        nombre: 'remera actualizada',
-        talle: '3',
-        stock: '12',
-        precio: '19999.90',
-        categoria: '2'
+        nombre:'remera urbana',
+        descripcion:'molde para sus variantes',
+        categoria:'2'
     });
 
     assert.deepEqual(result, {
-        nombre: 'Remera actualizada',
-        talle: 3,
-        stock: 12,
-        precio: 19999.9,
-        categoria: 2
+        nombre:'Remera urbana',
+        descripcion:'Molde para sus variantes',
+        categoria:2
+    });
+});
+
+test('el producto padre no acepta responsabilidades de una variante', () => {
+    const result = validarNuevoProducto({
+        nombre:'remera urbana',
+        descripcion:'molde para sus variantes',
+        categoria:'2',
+        talle:'3',
+        color:'Azul',
+        stock:'12',
+        precio:'19999.90',
+        imagenes:['https://example.com/imagen.png']
+    });
+
+    assert.equal(result.talle, undefined);
+    assert.equal(result.color, undefined);
+    assert.equal(result.stock, undefined);
+    assert.equal(result.precio, undefined);
+    assert.equal(result.imagenes, undefined);
+});
+
+test('el producto padre requiere nombre y descripcion', () => {
+    assert.throws(
+        () => validarNuevoProducto({ categoria:'2' })
+    );
+});
+
+test('la actualizacion solo normaliza nombre, descripcion y categoria', () => {
+    const result = validarProductoActualizacion({
+        nombre:'remera actualizada',
+        descripcion:'nuevo molde',
+        talle:'3',
+        stock:'12',
+        precio:'19999.90',
+        categoria:'2'
+    });
+
+    assert.deepEqual(result, {
+        nombre:'Remera actualizada',
+        descripcion:'Nuevo molde',
+        categoria:2
     });
 });
 
 test('la actualizacion acepta un body sin campos editables', () => {
     assert.deepEqual(
-        validarProductoActualizacion({ id: '43', csrf_token: 'token' }),
+        validarProductoActualizacion({ id:'43', csrf_token:'token' }),
         {}
     );
 });

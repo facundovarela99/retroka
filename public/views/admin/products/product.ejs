@@ -1,13 +1,5 @@
 <%
 const variantesProducto = Array.isArray(variantes) ? variantes : [];
-const imagenesRegistradas = typeof imagenes !== 'undefined' && Array.isArray(imagenes)
-    ? imagenes
-    : [];
-const imagenesProducto = imagenesRegistradas.length > 0
-    ? imagenesRegistradas
-    : producto.imagen_archivo
-        ? [{ url: producto.imagen_archivo, nombre_original: producto.nombre }]
-        : [];
 const stockTotal = variantesProducto.reduce((total, variante) => {
     const stock = Number.parseInt(variante.stock, 10);
     return total + (Number.isFinite(stock) ? Math.max(stock, 0) : 0);
@@ -25,11 +17,11 @@ const formatearPrecio = (valor) => {
 %>
 <!DOCTYPE html>
 <html lang="es">
-<%- include('../../partials/admin/admin-meta') %>
+<%- include('../../../partials/admin/admin-meta') %>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
-        <%- include('../../partials/admin/admin-navbar') %>
-        <%- include('../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
+        <%- include('../../../partials/admin/admin-navbar') %>
+        <%- include('../../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
 
         <main class="app-main">
             <div class="app-content-header">
@@ -52,45 +44,9 @@ const formatearPrecio = (valor) => {
 
             <div class="app-content">
                 <div class="container-fluid pb-4">
-                    <%- include('../../partials/admin/product-message') %>
+                    <%- include('../../../partials/admin/product-message') %>
 
                     <div class="row g-4">
-                        <div class="col-12 col-xl-7">
-                            <section aria-labelledby="product-images-title">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <h2 id="product-images-title" class="fs-5 mb-0">Imagenes</h2>
-                                    <span class="badge text-bg-secondary">
-                                        <%= imagenesProducto.length %>
-                                    </span>
-                                </div>
-
-                                <% if (imagenesProducto.length > 0) { %>
-                                    <div class="row g-3">
-                                        <% imagenesProducto.forEach((imagen, index) => { %>
-                                            <div class="<%= index === 0 ? 'col-12' : 'col-6 col-md-4' %>">
-                                                <div class="ratio <%= index === 0 ? 'ratio-4x3' : 'ratio-1x1' %> overflow-hidden rounded border bg-body-secondary">
-                                                    <img
-                                                        class="w-100 h-100 object-fit-contain"
-                                                        src="<%= imagen.url %>"
-                                                        alt="<%= imagen.nombre_original || producto.nombre %>"
-                                                        loading="<%= index === 0 ? 'eager' : 'lazy' %>"
-                                                        decoding="async"
-                                                    >
-                                                </div>
-                                            </div>
-                                        <% }) %>
-                                    </div>
-                                <% } else { %>
-                                    <div class="ratio ratio-4x3 rounded border bg-body-secondary">
-                                        <div class="d-flex flex-column align-items-center justify-content-center text-body-secondary">
-                                            <i class="bi bi-image fs-1 mb-2" aria-hidden="true"></i>
-                                            <span>Sin imagenes</span>
-                                        </div>
-                                    </div>
-                                <% } %>
-                            </section>
-                        </div>
-
                         <div class="col-12 col-xl-5">
                             <section class="card card-primary card-outline h-100" aria-labelledby="product-info-title">
                                 <div class="card-header">
@@ -104,10 +60,6 @@ const formatearPrecio = (valor) => {
                                         <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
                                             <dt class="fw-semibold">Categoria</dt>
                                             <dd class="mb-0 text-end"><%= producto.categoria_producto || 'Sin categoria' %></dd>
-                                        </div>
-                                        <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
-                                            <dt class="fw-semibold">Precio base</dt>
-                                            <dd class="mb-0 text-end">$<%= formatearPrecio(producto.precio) %></dd>
                                         </div>
                                         <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
                                             <dt class="fw-semibold">Stock total</dt>
@@ -125,10 +77,17 @@ const formatearPrecio = (valor) => {
                                 </div>
 
                                 <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
-                                    <a class="btn btn-outline-secondary" href="<%= url('/productos') %>">
-                                        <i class="bi bi-shop me-1" aria-hidden="true"></i>
-                                        Ver en tienda
-                                    </a>
+                                    <% if (variantesProducto.length > 0) { %>
+                                        <a class="btn btn-outline-secondary" href="<%= url('/producto/' + producto.id) %>">
+                                            <i class="bi bi-shop me-1" aria-hidden="true"></i>
+                                            Ver en tienda
+                                        </a>
+                                    <% } else { %>
+                                        <button class="btn btn-outline-secondary" type="button" disabled>
+                                            <i class="bi bi-shop me-1" aria-hidden="true"></i>
+                                            Sin variantes para publicar
+                                        </button>
+                                    <% } %>
                                     <a class="btn btn-outline-warning" href="<%= url('/admin/producto/edit/' + producto.id) %>">
                                         <i class="fas fa-pencil-alt me-1" aria-hidden="true"></i>
                                         Editar
@@ -154,9 +113,65 @@ const formatearPrecio = (valor) => {
                         <% if (variantesProducto.length > 0) { %>
                             <div class="row g-3">
                                 <% variantesProducto.forEach((variante) => { %>
+                                    <%
+                                    const imagenesVariante = Array.isArray(variante.imagenes)
+                                        ? variante.imagenes
+                                        : [];
+                                    const carouselId = `variant-images-${variante.variante_id}`;
+                                    %>
                                     <div class="col-12 col-sm-6 col-xl-4">
                                         <article class="card h-100">
                                             <div class="card-body">
+                                                <div
+                                                    id="<%= carouselId %>"
+                                                    class="carousel slide mb-3 border bg-body-secondary overflow-hidden"
+                                                    aria-label="Imagenes de <%= producto.nombre %>, <%= variante.color %>, talle <%= variante.talle %>"
+                                                >
+                                                    <div class="carousel-inner ratio ratio-4x3">
+                                                        <% if (imagenesVariante.length > 0) { %>
+                                                            <% imagenesVariante.forEach((imagen, index) => { %>
+                                                                <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
+                                                                    <img
+                                                                        class="d-block w-100 h-100 object-fit-cover"
+                                                                        src="<%= imagen.url %>"
+                                                                        alt="<%= imagen.nombre_original || producto.nombre %>"
+                                                                        loading="lazy"
+                                                                    >
+                                                                </div>
+                                                            <% }) %>
+                                                        <% } else { %>
+                                                            <div class="carousel-item active">
+                                                                <img
+                                                                    class="d-block w-100 h-100 object-fit-contain p-4"
+                                                                    src="/assets/img/product-placeholder.svg"
+                                                                    alt="Variante sin imagen"
+                                                                >
+                                                            </div>
+                                                        <% } %>
+                                                    </div>
+
+                                                    <% if (imagenesVariante.length > 1) { %>
+                                                        <button
+                                                            class="carousel-control-prev"
+                                                            type="button"
+                                                            data-bs-target="#<%= carouselId %>"
+                                                            data-bs-slide="prev"
+                                                            aria-label="Imagen anterior"
+                                                        >
+                                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                        </button>
+                                                        <button
+                                                            class="carousel-control-next"
+                                                            type="button"
+                                                            data-bs-target="#<%= carouselId %>"
+                                                            data-bs-slide="next"
+                                                            aria-label="Imagen siguiente"
+                                                        >
+                                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                        </button>
+                                                    <% } %>
+                                                </div>
+
                                                 <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                                                     <div>
                                                         <p class="text-body-secondary small mb-1">Talle</p>
@@ -167,6 +182,10 @@ const formatearPrecio = (valor) => {
                                                     </span>
                                                 </div>
 
+                                                <div class="d-flex justify-content-between gap-3 py-2 border-top">
+                                                    <span class="text-body-secondary">Color</span>
+                                                    <strong><%= variante.color || 'Sin color' %></strong>
+                                                </div>
                                                 <div class="d-flex justify-content-between gap-3 py-2 border-top">
                                                     <span class="text-body-secondary">Stock</span>
                                                     <strong><%= variante.stock %></strong>
@@ -212,9 +231,9 @@ const formatearPrecio = (valor) => {
             </div>
         </main>
 
-        <%- include('../../partials/admin/admin-footer') %>
+        <%- include('../../../partials/admin/admin-footer') %>
     </div>
 
-    <%- include('../../partials/admin/admin-scripts') %>
+    <%- include('../../../partials/admin/admin-scripts') %>
 </body>
 </html>

@@ -1,17 +1,10 @@
-<% if (typeof product_message !== 'undefined' && product_message?.message) { %>
+<% if (product_message?.message) { %>
     <div
         class="alert <%= product_message.type === 'success' ? 'alert-success' : 'alert-danger' %> alert-dismissible"
         role="alert"
     >
         <div class="pe-4">
             <%= product_message.message %>
-
-            <% if (product_message.details) { %>
-                <details class="mt-2">
-                    <summary>Detalle tecnico (solo desarrollo)</summary>
-                    <pre class="mt-2 mb-0 overflow-auto"><%= product_message.details %></pre>
-                </details>
-            <% } %>
         </div>
 
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>

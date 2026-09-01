@@ -10,7 +10,7 @@ import {
     validarActualizacionVariante,
     validarNuevaVariante
 } from "../../Services/Variant.service.js";
-import { obtenerCsrfToken, esPeticionAjax, validarCsrfToken } from "../../Helpers.js";
+import { obtenerCsrfToken, esPeticionAjax, validarCsrfToken, sessionMessage, getSessionMessage } from "../../Helpers.js";
 import { validateFile } from "secure-file-validator";
 import { MAX_PRODUCT_IMAGES, MAX_PRODUCT_IMAGE_SIZE } from "../../Middleware/Upload.middleware.js";
 import { promises as fs } from "fs";
@@ -92,8 +92,23 @@ const productUploadDirectory = (productId) => {
     return directory;
 };
 
-const removeProductUploadDirectory = async (productId) => {
-    const directory = productUploadDirectory(productId);
+const variantUploadDirectory = (productId, variantId) => {
+    if (!Number.isInteger(Number(variantId)) || Number(variantId) < 1) {
+        throw new AppError('Internal Server Error', 'Id de variante invalido para almacenar imagenes', 500);
+    }
+
+    const variantsRoot = path.resolve(productUploadDirectory(productId), 'variants');
+    const directory = path.resolve(variantsRoot, String(variantId));
+
+    if (path.dirname(directory) !== variantsRoot) {
+        throw new AppError('Internal Server Error', 'Directorio de imagenes de variante invalido', 500);
+    }
+
+    return directory;
+};
+
+const removeVariantUploadDirectory = async (productId, variantId) => {
+    const directory = variantUploadDirectory(productId, variantId);
     await fs.rm(directory, { recursive: true, force: true });
 };
 
@@ -108,8 +123,8 @@ const normalizeFileIds = (value) => {
     return [...new Set(ids)];
 };
 
-const removeStoredProductFiles = async (files, productId) => {
-    const directory = productUploadDirectory(productId);
+const removeStoredVariantFiles = async (files, productId, variantId) => {
+    const directory = variantUploadDirectory(productId, variantId);
 
     await Promise.all(files.map(async (file) => {
         const filename = path.basename(file.nombre || '');
@@ -119,7 +134,7 @@ const removeStoredProductFiles = async (files, productId) => {
         const filePath = path.resolve(directory, filename);
 
         if (path.dirname(filePath) !== directory) {
-            throw new AppError('Internal Server Error', 'Ruta de imagen de producto invalida', 500);
+            throw new AppError('Internal Server Error', 'Ruta de imagen de variante invalida', 500);
         }
 
         try {
@@ -150,12 +165,12 @@ const validateProductImages = async (files) => {
     }
 };
 
-const storeProductImages = async (files, productId) => {
+const storeVariantImages = async (files, productId, variantId) => {
     if (!Array.isArray(files) || files.length === 0) {
         return [];
     }
 
-    const directory = productUploadDirectory(productId);
+    const directory = variantUploadDirectory(productId, variantId);
     await fs.mkdir(directory, { recursive: true });
     const storedPaths = [];
 
@@ -176,11 +191,11 @@ const storeProductImages = async (files, productId) => {
             storedPaths.push(destination);
 
             storedFiles.push({
-                url: `/uploads/${productId}/${filename}`,
-                nombre: filename,
-                nombre_original: path.basename(file.originalname.replaceAll('\\', '/')),
-                mime_type: mimeType,
-                size: file.size
+                url:`/uploads/${productId}/variants/${variantId}/${filename}`,
+                nombre:filename,
+                nombre_original:path.basename(file.originalname.replaceAll('\\', '/')),
+                mime_type:mimeType,
+                size:file.size
             });
         }
 
@@ -191,19 +206,13 @@ const storeProductImages = async (files, productId) => {
                 await fs.unlink(storedPath);
             } catch (cleanupError) {
                 if (cleanupError.code !== 'ENOENT') {
-                    console.error('No se pudo limpiar una imagen nueva:', cleanupError);
+                    console.error('No se pudo limpiar una imagen nueva de variante:', cleanupError);
                 }
             }
         }));
         throw error;
     }
 };
-
-const validateAndStoreProductImages = async (files, productId) => {
-    await validateProductImages(files);
-    return storeProductImages(files, productId);
-};
-
 
 export class ProductController{
 
@@ -259,28 +268,25 @@ export class ProductController{
         return res.redirect(303, options.redirectTo);
     }
 
-    async getAll(req, res, next){
+    async index(req, res, next){
         try {
             const user = req.session.user;
             const productos = await this.#productModel.getAll();
-            const productMessage = consumeProductMessage(req);
-            var carritoUsuario = [];
+            const productosEliminados = await this.#productModel.getAllDeleted();
+            const productMessage = getSessionMessage(req);
 
-            if (user){
-                carritoUsuario = await this.#cartModel.getUserCart(user.id);
-            }
-
-            res.status(200).render('admin/productos',{
+            res.status(200).render('admin/products/products',{
                 user:user,
                 title: 'Productos',
-                productos:productos,
-                carrito:carritoUsuario,
+                productos,
+                productos_eliminados:productosEliminados,
                 url:url,
                 baseUrl:base_path(),
                 csrf_token:obtenerCsrfToken(req),
                 product_message:productMessage,
             })
         } catch (error) {
+            console.log('Ocurrió un error jodido...', error);
             return next(error);
         }
     }
@@ -290,34 +296,37 @@ export class ProductController{
 
         try {
             const user = req.session.user;
-        
-            if (!id) throw new AppError('Not Found', 'Producto inexistente', 404);
-        
+
             const producto = await this.#productModel.findByID(id);
+
+            if (!producto){
+                sessionMessage(req, 'Producto inexistente', 'danger');
+                return res.redirect(303, url('/admin/productos'));
+            }
+
             const [variantes, imagenes] = await Promise.all([
                 this.#productModel.findVariants(producto),
                 this.#fileModel.findByProductId(producto.id)
             ]);
-            const productMessage = consumeProductMessage(req);
+            const variantesConImagenes = variantes.map((variante) => ({
+                ...variante,
+                imagenes:imagenes.filter(
+                    (imagen) => Number(imagen.variante_id) === Number(variante.variante_id)
+                )
+            }));
+
+            const productMessage = getSessionMessage(req);
             const updateFormData = req.session?.product_update_form_data || {};
 
             if (req.session?.product_update_form_data) {
                 delete req.session.product_update_form_data;
             }
 
-            var carritoUsuario = []
-
-            if (user){
-                carritoUsuario = await this.#cartModel.getUserCart(user.id);
-            }
-
-            res.status(200).render('admin/producto', {
+            res.status(200).render('admin/products/product', {
                 user:user,
                 title:producto.nombre,
                 producto:producto,
-                variantes:variantes,
-                imagenes:imagenes,
-                carrito:carritoUsuario,
+                variantes:variantesConImagenes,
                 url:url,
                 baseUrl:base_path(),
                 csrf_token:obtenerCsrfToken(req),
@@ -339,12 +348,11 @@ export class ProductController{
                 delete req.session.product_form_data;
             }
 
-            return res.render('admin/create', {
+            return res.render('admin/products/create', {
                 title:'Crear producto',
                 user:req.session.user,
                 url:url,
                 csrf_token: obtenerCsrfToken(req),
-                talles: await this.#productModel.getTalles(),
                 categorias: await this.#categoryController.getAll(),
                 product_message:productMessage,
                 form_data:formData
@@ -355,18 +363,13 @@ export class ProductController{
     }
 
     async store(req, res, next){
-        let createdProductId = null;
         let formData = null;
 
         try{
             formData = {
                 nombre: req.body.nombre,
                 descripcion: req.body.descripcion,
-                talle: req.body.talle,
-                stock: req.body.stock,
-                precio: req.body.precio,
                 categoria: req.body.categoria,
-                imagenes: []
             };
 
             const producto = validarNuevoProducto(formData);
@@ -382,29 +385,12 @@ export class ProductController{
             }
 
             const result = await this.#productModel.create(producto);
-            createdProductId = result.id;
 
-            const storedImages = await validateAndStoreProductImages(req.files, result.id);
-            const productWithImages = validarNuevoProducto({
-                ...producto,
-                imagenes: storedImages.map((file) => file.url)
-            });
-            const insertedImages = await this.#fileModel.createMany(result.id, storedImages);
-
-            req.session.product_message = {
-                type: 'success',
-                message: 'Producto creado exitosamente'
-            };
-
-            await saveSession(req);
+            sessionMessage(req, 'Producto creado exitosamente', 'success');
 
             if (esPeticionAjax(req)) {
                 return res.status(201).json({
-                    data: {
-                        ...result,
-                        imagenes: insertedImages,
-                        urls: productWithImages.imagenes
-                    },
+                    data:result,
                     message: 'Producto creado exitosamente',
                     redirectTo: url('/admin/productos')
                 });
@@ -412,16 +398,6 @@ export class ProductController{
 
             return res.redirect(303, url('/admin/productos'));
         } catch(error){
-            console.error(error);
-            if (createdProductId) {
-                try {
-                    await removeProductUploadDirectory(createdProductId);
-                    await this.#productModel.delete(createdProductId);
-                } catch (rollbackError) {
-                    console.error('No se pudo revertir el producto luego de un error de imagenes:', rollbackError);
-                }
-            }
-
             const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
 
             if (esPeticionAjax(req)) {
@@ -463,7 +439,8 @@ export class ProductController{
             const producto = await this.#productModel.findByID(productId);
 
             if (!producto) {
-                throw new AppError('Not Found', 'Producto inexistente', 404);
+                sessionMessage(req, 'Producto inexistente', 'danger');
+                return res.redirect(303, url('/admin/productos'));
             }
 
             productExists = true;
@@ -509,10 +486,14 @@ export class ProductController{
         const formData = {
             producto_id:req.body?.producto_id,
             talle:req.body?.talle,
+            color:req.body?.color,
             stock:req.body?.stock,
             precio:req.body?.precio
         };
         let productExists = false;
+        let createdVariant = null;
+        let storedImages = [];
+        let insertedImages = [];
 
         try {
             if (!Number.isInteger(productId) || productId < 1) {
@@ -533,10 +514,14 @@ export class ProductController{
                 throw new AppError('Forbidden', 'CSRF token invalido', 403);
             }
 
+            const receivedFiles = Array.isArray(req.files) ? req.files : [];
+            await validateProductImages(receivedFiles);
+
             const variante = validarNuevaVariante({
                 ...req.body,
                 producto_id:productId
             });
+            console.log('variante validada: ', variante);
             const talle = await this.#variantModel.findSizeByID(variante.talle);
 
             if (!talle) {
@@ -544,8 +529,29 @@ export class ProductController{
             }
 
             const result = await this.#variantModel.create(productId, variante);
+            createdVariant = result;
+            const currentImages = await this.#fileModel.findByVariantId(productId, result.id);
+
+            if (currentImages.length + receivedFiles.length > MAX_PRODUCT_IMAGES) {
+                throw new AppError(
+                    'Bad Request',
+                    `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes por variante`,
+                    400
+                );
+            }
+
+            storedImages = await storeVariantImages(receivedFiles, productId, result.id);
+            insertedImages = await this.#fileModel.createManyForVariant(
+                productId,
+                result.id,
+                storedImages
+            );
             const response = {
-                data:{ ...result, talle:talle.tipo },
+                data:{
+                    ...result,
+                    talle:talle.tipo,
+                    imagenes:insertedImages
+                },
                 message:'Variante creada exitosamente',
                 status:201,
                 redirectTo:productUrl
@@ -563,6 +569,34 @@ export class ProductController{
 
             return res.redirect(303, productUrl);
         } catch (error) {
+            if (insertedImages.length > 0 && createdVariant) {
+                try {
+                    await this.#fileModel.deleteManyForVariant(
+                        productId,
+                        createdVariant.id,
+                        insertedImages.map((image) => image.id)
+                    );
+                } catch (rollbackError) {
+                    console.error('No se pudieron revertir las imagenes registradas de la variante:', rollbackError);
+                }
+            }
+
+            if (storedImages.length > 0 && createdVariant) {
+                try {
+                    await removeStoredVariantFiles(storedImages, productId, createdVariant.id);
+                } catch (rollbackError) {
+                    console.error('No se pudieron revertir los archivos de la variante:', rollbackError);
+                }
+            }
+
+            if (createdVariant) {
+                try {
+                    await this.#variantModel.softDelete(productId, createdVariant.id);
+                } catch (rollbackError) {
+                    console.error('No se pudo revertir la variante creada:', rollbackError);
+                }
+            }
+
             return this.#respondVariantError(req, res, next, error, {
                 fallbackMessage:'No se pudo crear la variante. Intenta nuevamente.',
                 logMessage:'Error interno al crear una variante:',
@@ -592,15 +626,17 @@ export class ProductController{
             const producto = await this.#productModel.findByID(productId);
 
             if (!producto) {
-                throw new AppError('Not Found', 'Producto inexistente', 404);
+                sessionMessage(req, 'Producto inexistente', 'danger');
+                return res.redirect(303, url('/admin/productos'));
             }
 
             productExists = true;
 
-            const [variante, talles, variantes] = await Promise.all([
+            const [variante, talles, variantes, imagenes] = await Promise.all([
                 this.#variantModel.findByID(productId, variantId),
                 this.#variantModel.getSizes(),
-                this.#variantModel.findByProductId(productId)
+                this.#variantModel.findByProductId(productId),
+                this.#fileModel.findByVariantId(productId, variantId)
             ]);
             const productMessage = consumeProductMessage(req);
             const formData = consumeVariantFormData(req, productId, variantId);
@@ -613,6 +649,7 @@ export class ProductController{
                 producto,
                 variante,
                 variantes,
+                imagenes,
                 talles,
                 url,
                 baseUrl:base_path(),
@@ -643,11 +680,15 @@ export class ProductController{
             producto_id:req.body?.producto_id,
             variante_id:req.body?.variante_id,
             talle:req.body?.talle,
+            color:req.body?.color,
             stock:req.body?.stock,
-            precio:req.body?.precio
+            precio:req.body?.precio,
+            eliminar_imagenes:req.body?.eliminar_imagenes
         };
         let productExists = false;
         let variantExists = false;
+        let storedImages = [];
+        let insertedImages = [];
 
         try {
             if (!Number.isInteger(productId) || productId < 1) {
@@ -676,6 +717,31 @@ export class ProductController{
                 throw new AppError('Forbidden', 'CSRF token invalido', 403);
             }
 
+            const receivedFiles = Array.isArray(req.files) ? req.files : [];
+            await validateProductImages(receivedFiles);
+
+            const currentImages = await this.#fileModel.findByVariantId(productId, variantId);
+            const imageIdsToDelete = normalizeFileIds(req.body?.eliminar_imagenes);
+            const imagesToDelete = await this.#fileModel.findVariantFilesByIds(
+                productId,
+                variantId,
+                imageIdsToDelete
+            );
+
+            if (imagesToDelete.length !== imageIdsToDelete.length) {
+                throw new AppError('Bad Request', 'Una imagen seleccionada no pertenece a la variante', 400);
+            }
+
+            const finalImageCount = currentImages.length - imagesToDelete.length + receivedFiles.length;
+
+            if (finalImageCount > MAX_PRODUCT_IMAGES) {
+                throw new AppError(
+                    'Bad Request',
+                    `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes por variante`,
+                    400
+                );
+            }
+
             const variante = validarActualizacionVariante(req.body);
 
             if (variante.talle !== undefined) {
@@ -687,8 +753,26 @@ export class ProductController{
             }
 
             const result = await this.#variantModel.update(productId, variantId, variante);
+            storedImages = await storeVariantImages(receivedFiles, productId, variantId);
+            insertedImages = await this.#fileModel.createManyForVariant(
+                productId,
+                variantId,
+                storedImages
+            );
+
+            if (imageIdsToDelete.length > 0) {
+                await this.#fileModel.deleteManyForVariant(productId, variantId, imageIdsToDelete);
+                await removeStoredVariantFiles(imagesToDelete, productId, variantId).catch((fileError) => {
+                    console.error('No se pudieron eliminar archivos antiguos de la variante:', fileError);
+                });
+            }
+
             const response = {
-                data:result,
+                data:{
+                    ...result,
+                    imagenes_agregadas:insertedImages,
+                    imagenes_eliminadas:imageIdsToDelete
+                },
                 message:'Variante actualizada exitosamente',
                 status:200,
                 redirectTo:editUrl
@@ -706,6 +790,26 @@ export class ProductController{
 
             return res.redirect(303, editUrl);
         } catch (error) {
+            if (insertedImages.length > 0) {
+                try {
+                    await this.#fileModel.deleteManyForVariant(
+                        productId,
+                        variantId,
+                        insertedImages.map((image) => image.id)
+                    );
+                } catch (rollbackError) {
+                    console.error('No se pudieron revertir las imagenes nuevas de la variante:', rollbackError);
+                }
+            }
+
+            if (storedImages.length > 0) {
+                try {
+                    await removeStoredVariantFiles(storedImages, productId, variantId);
+                } catch (rollbackError) {
+                    console.error('No se pudieron revertir los archivos nuevos de la variante:', rollbackError);
+                }
+            }
+
             const redirectTo = productExists && variantExists ? editUrl : productUrl;
 
             return this.#respondVariantError(req, res, next, error, {
@@ -751,7 +855,8 @@ export class ProductController{
                 throw new AppError('Forbidden', 'CSRF token invalido', 403);
             }
 
-            await this.#variantModel.delete(productId, variantId);
+            await this.#variantModel.hardDelete(productId, variantId);
+            await removeVariantUploadDirectory(productId, variantId);
 
             const response = {
                 data:{ id:variantId, producto_id:productId },
@@ -759,18 +864,13 @@ export class ProductController{
                 status:200,
                 redirectTo:productUrl
             };
-
+            
             if (esPeticionAjax(req)) {
                 return res.status(200).json(response);
             }
 
-            req.session.product_message = {
-                type:'success',
-                message:response.message
-            };
-            await saveSession(req);
-
-            return res.redirect(303, productUrl);
+            sessionMessage(req, 'Variante eliminada exitosamente', 'success');
+            return res.redirect(303, url('/admin/productos/' + productId));
         } catch (error) {
             return this.#respondVariantError(req, res, next, error, {
                 fallbackMessage:'No se pudo eliminar la variante. Intenta nuevamente.',
@@ -791,16 +891,12 @@ export class ProductController{
 
             const producto = await this.#productModel.findByID(id);
 
-            if (!producto) {
-                throw new AppError('Not Found', 'Producto inexistente', 404);
+            if (!producto){
+                sessionMessage(req, 'Producto inexistente', 'danger');
+                return res.redirect(303, url('/admin/productos'));
             }
 
-            const [variantes, imagenes, talles, categorias] = await Promise.all([
-                this.#productModel.findVariants(producto),
-                this.#fileModel.findByProductId(producto.id),
-                this.#productModel.getTalles(),
-                this.#categoryController.getAll()
-            ]);
+            const categorias = await this.#categoryController.getAll();
             const productMessage = consumeProductMessage(req);
             const storedFormData = req.session?.product_update_form_data || {};
             const formData = String(storedFormData.id || '') === String(id)
@@ -813,13 +909,10 @@ export class ProductController{
 
             res.set('Cache-Control', 'no-store');
 
-            return res.status(200).render('admin/edit', {
+            return res.status(200).render('admin/products/edit', {
                 title:`Editar ${producto.nombre}`,
                 user:req.session.user,
                 producto,
-                variantes,
-                imagenes,
-                talles,
                 categorias,
                 url,
                 baseUrl:base_path(),
@@ -868,18 +961,11 @@ export class ProductController{
             : url('/admin/productos');
         const submittedFormData = {
             id:req.body?.id,
-            variante_id:req.body?.variante_id,
             nombre:req.body?.nombre,
             descripcion:req.body?.descripcion,
-            talle:req.body?.talle,
-            stock:req.body?.stock,
-            precio:req.body?.precio,
-            categoria:req.body?.categoria,
-            eliminar_imagenes:req.body?.eliminar_imagenes
+            categoria:req.body?.categoria
         };
         let productExists = false;
-        let storedImages = [];
-        let insertedImages = [];
 
         try {
             if (!Number.isInteger(id) || id < 1) {
@@ -910,86 +996,10 @@ export class ProductController{
                 producto.categoria = categoria.id;
             }
 
-            if (producto.talle !== undefined) {
-                const talle = await this.#productModel.findSizeByID(producto.talle);
-
-                if (!talle) {
-                    throw new AppError('Bad Request', 'El talle seleccionado no existe', 400);
-                }
-            }
-
-            const variantIdValue = req.body?.variante_id;
-            const variantId = variantIdValue === undefined || variantIdValue === ''
-                ? null
-                : Number(variantIdValue);
-
-            if (variantId !== null && (!Number.isInteger(variantId) || variantId < 1)) {
-                throw new AppError('Bad Request', 'Id de variante invalido', 400);
-            }
-
-            if (variantId !== null) {
-                await this.#productModel.findVariantByID(id, variantId);
-            }
-
-            const currentImages = await this.#fileModel.findByProductId(id);
-            const imageIdsToDelete = normalizeFileIds(req.body?.eliminar_imagenes);
-            const imagesToDelete = await this.#fileModel.findByIdsForProduct(id, imageIdsToDelete);
-
-            if (imagesToDelete.length !== imageIdsToDelete.length) {
-                throw new AppError('Bad Request', 'Una imagen seleccionada no pertenece al producto', 400);
-            }
-
-            const receivedFiles = Array.isArray(req.files) ? req.files : [];
-            const finalImageCount = currentImages.length - imagesToDelete.length + receivedFiles.length;
-
-            if (finalImageCount > MAX_PRODUCT_IMAGES) {
-                throw new AppError(
-                    'Bad Request',
-                    `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes por producto`,
-                    400
-                );
-            }
-
-            await validateProductImages(receivedFiles);
             await this.#productModel.update(id, producto);
 
-            const variantData = {
-                talle:producto.talle,
-                stock:producto.stock,
-                precio:producto.precio
-            };
-            const hasVariantChanges = Object.values(variantData).some((value) => value !== undefined);
-
-            if (hasVariantChanges && variantId !== null) {
-                await this.#productModel.updateVariant(id, variantId, variantData);
-            } else if (hasVariantChanges) {
-                if (variantData.talle === undefined) {
-                    throw new AppError('Bad Request', 'El talle es obligatorio para crear la variante', 400);
-                }
-
-                await this.#productModel.createVariant(id, {
-                    talle:variantData.talle,
-                    stock:variantData.stock ?? existingProduct.stock,
-                    precio:variantData.precio ?? existingProduct.precio
-                });
-            }
-
-            storedImages = await storeProductImages(receivedFiles, id);
-            insertedImages = await this.#fileModel.createMany(id, storedImages);
-
-            if (imagesToDelete.length > 0) {
-                await this.#fileModel.deleteMany(id, imageIdsToDelete);
-                await removeStoredProductFiles(imagesToDelete, id).catch((fileError) => {
-                    console.error('No se pudo eliminar una imagen del disco:', fileError);
-                });
-            }
-
             const response = {
-                data:{
-                    ...producto,
-                    imagenes_agregadas:insertedImages,
-                    imagenes_eliminadas:imageIdsToDelete
-                },
+                data:producto,
                 id,
                 message:'Producto actualizado con exito',
                 redirectTo:editUrl
@@ -999,30 +1009,9 @@ export class ProductController{
                 return res.status(200).json(response);
             }
 
-            req.session.product_message = {
-                type:'success',
-                message:response.message
-            };
-            await saveSession(req);
-
-            return res.redirect(303, response.redirectTo);
+            sessionMessage(req, 'Producto actualizado exitosamente', 'success');
+            return res.redirect(303, url('/admin/productos'));
         } catch (error) {
-            if (insertedImages.length > 0) {
-                try {
-                    await this.#fileModel.deleteMany(id, insertedImages.map((image) => image.id));
-                } catch (rollbackError) {
-                    console.error('No se pudieron revertir los registros de imagenes nuevas:', rollbackError);
-                }
-            }
-
-            if (storedImages.length > 0) {
-                try {
-                    await removeStoredProductFiles(storedImages, id);
-                } catch (rollbackError) {
-                    console.error('No se pudieron revertir las imagenes nuevas:', rollbackError);
-                }
-            }
-
             const receivedStatus = error?.statusCode;
             const status = Number.isInteger(receivedStatus)
                 && receivedStatus >= 400
@@ -1073,6 +1062,18 @@ export class ProductController{
         try {
             if (!Number.isInteger(id) || id < 1) {
                 throw new AppError('Bad Request', 'Id de producto invalido', 400);
+            }
+
+            if (!this.#productModel.findByID(id)){
+                if (esPeticionAjax(req)) {
+                    return res.status(404).json({message:'Producto inexistente'});
+                }
+                req.session.product_message = {
+                    type: 'success',
+                    message: response.message
+                };
+                await saveSession(req);
+                return res.redirect(404, 'admin/productos');
             }
 
             await this.#productModel.findByID(id);
@@ -1129,6 +1130,54 @@ export class ProductController{
 
             return res.redirect(303, url('/admin/productos'));
         }
+    }
+
+    async publish(req, res, next){
+        const id = req.body.id;
+        const categoria = req.body.categoria;
+        console.log(id);
+        console.log(await this.#productModel.findByID(1000));
+
+        if (!validarCsrfToken(req)){
+            if (esPeticionAjax(req)){
+                return res.status(409).json({
+                    status:'error',
+                    error: 'Forbidden',
+                    message:'Token inválido, debe reiniciar la sesión.'
+                })
+            }
+            sessionMessage(req, 'Token inválido, debe reiniciar la sesión', 'danger');
+            return res.redirect(303, url('/admin/productos'));
+        }
+
+        if (!await this.#productModel.findByID(id)){
+            if (esPeticionAjax(req)){
+                return res.status(404).json({
+                    type:'error',
+                    message:'Producto inexistente'
+                });
+            }
+
+            sessionMessage(req, 'Producto inexistente', 'danger');
+            return res.redirect(303, url('/admin/productos'));
+        }
+
+        try {
+            await this.#productModel.publish(id, categoria);
+
+            if (esPeticionAjax(req)){
+                return res.status(200).json({
+                    type:'success',
+                    message:'Producto publicado exitosamente'
+                });
+            }
+
+            sessionMessage(req, 'Token inválido, debe reiniciar la sesión', 'danger');
+            return res.redirect(303, url('/admin/productos'));
+        } catch (error) {
+            return next(error);
+        }
+
     }
 }
 

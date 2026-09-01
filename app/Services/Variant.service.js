@@ -30,9 +30,17 @@ const requiredPrice = numeroRequerido(
     'El precio debe ser un numero valido'
 );
 
+const requiredColor = zod.string({
+    error:'El color es obligatorio'
+})
+    .trim()
+    .min(1, { message:'El color es obligatorio' })
+    .max(100, { message:'El color puede tener hasta 100 caracteres' });
+
 const newVariantSchema = zod.object({
     producto_id:requiredId('El producto'),
     talle:requiredId('El talle'),
+    color:requiredColor,
     stock:requiredStock,
     precio:requiredPrice
 });
@@ -42,6 +50,7 @@ const updatedVariantSchema = zod.object({
         zod.number().int().positive().max(MAX_DATABASE_ID),
         'El talle debe ser un numero entero valido'
     ),
+    color:requiredColor.optional(),
     stock:numeroOpcional(
         zod.number()
             .int({ message:'El stock debe ser un numero entero' })

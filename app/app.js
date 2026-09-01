@@ -57,67 +57,67 @@ app.use((req, res, next) => {
     });
 });
 
-// app.use((req, res, next) => {
-//     const error = new Error('La pagina solicitada no existe');
-//     error.statusCode = 404;
-//     next(error);
-// });
+app.use((req, res, next) => {
+    const error = new Error('La pagina solicitada no existe');
+    error.statusCode = 404;
+    next(error);
+});
 
-// app.use((error, req, res, next) => {
-//     if (res.headersSent) {
-//         return next(error);
-//     }
+app.use((error, req, res, next) => {
+    if (res.headersSent) {
+        return next(error);
+    }
 
-//     const receivedStatus = error?.statusCode ?? error?.status;
-//     const status = Number.isInteger(receivedStatus) && receivedStatus >= 400 && receivedStatus <= 599
-//         ? receivedStatus
-//         : 500;
-//     const errorId = randomUUID();
-//     const isInternalError = status >= 500;
-//     const isDevelopment = process.env.NODE_ENV !== 'production';
-//     const message = status === 413
-//         ? 'La peticion excede el tamano permitido'
-//         : isInternalError
-//             ? 'Error interno del servidor'
-//             : error?.message || 'La peticion no es valida';
+    const receivedStatus = error?.statusCode ?? error?.status;
+    const status = Number.isInteger(receivedStatus) && receivedStatus >= 400 && receivedStatus <= 599
+        ? receivedStatus
+        : 500;
+    const errorId = randomUUID();
+    const isInternalError = status >= 500;
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const message = status === 413
+        ? 'La peticion excede el tamaño permitido'
+        : isInternalError
+            ? 'Error interno del servidor'
+            : error?.message || 'La peticion no es valida';
 
-//     const logContext = {
-//         errorId,
-//         method: req.method,
-//         path: req.originalUrl,
-//         status
-//     };
+    const logContext = {
+        errorId,
+        method: req.method,
+        path: req.originalUrl,
+        status
+    };
 
-//     if (isInternalError) {
-//         console.error('Error no controlado durante una peticion:', logContext);
-//         console.error(error);
-//     } else if (isDevelopment) {
-//         console.warn('Peticion finalizada con error:', logContext, error?.message);
-//     }
+    if (isInternalError) {
+        console.error('Error no controlado durante una peticion:', logContext);
+        console.error(error);
+    } else if (isDevelopment) {
+        console.warn('Peticion finalizada con error:', logContext, error?.message);
+    }
 
-//     res.set('Cache-Control', 'no-store');
+    res.set('Cache-Control', 'no-store');
 
-//     if (esPeticionAjax(req)) {
-//         return res.status(status).json({
-//             data: null,
-//             error: isInternalError ? 'Internal Server Error' : error?.error || 'Request Error',
-//             errorId,
-//             message,
-//             status,
-//             ...(isDevelopment && isInternalError
-//                 ? { details: error?.message, stack: error?.stack }
-//                 : {})
-//         });
-//     }
+    if (esPeticionAjax(req)) {
+        return res.status(status).json({
+            data: null,
+            error: isInternalError ? 'Internal Server Error' : error?.error || 'Request Error',
+            errorId,
+            message,
+            status,
+            ...(isDevelopment && isInternalError
+                ? { details: error?.message, stack: error?.stack }
+                : {})
+        });
+    }
 
-//     return res.status(status).render('site/error', {
-//         title: status === 404 ? 'Pagina no encontrada' : 'Ocurrio un error',
-//         status,
-//         message,
-//         errorId,
-//         details: isDevelopment && isInternalError ? error?.stack : null
-//     });
-// });
+    return res.status(status).render('error', {
+        title: status === 404 ? 'Pagina no encontrada' : 'Ocurrio un error',
+        status,
+        message,
+        errorId,
+        details: isDevelopment && isInternalError ? error?.stack : null
+    });
+});
 
 app.listen(port, () => {
     console.log(`Escuchando servidor en http://localhost:${port}`);

@@ -121,7 +121,7 @@ btnAgregarCarrito.forEach((btn) => {
 
         Swal.fire({
             theme: 'dark',
-            title: `Agregar ${producto.nombre}${producto.talle ? ` - Talle ${producto.talle}` : ''} al carrito`,
+            title: `Agregar ${producto.nombre}${producto.color ? ` - ${producto.color}` : ''}${producto.talle ? ` - Talle ${producto.talle}` : ''} al carrito`,
             html: `
                     ${crearCarritoForm(producto).outerHTML}
                     <span class="d-flex flex-row justify-content-center"><strong>Total: $<p id="totalProducto">${formatearMoneda(producto.precio)}</p></strong></span>
@@ -151,7 +151,10 @@ btnAgregarCarrito.forEach((btn) => {
                 }
 
                 if (!loggedIn) {
-                    const productoExistente = carro.find((element) => element.id === producto.id);
+                    const productoExistente = carro.find(
+                        (element) => element.id === producto.id
+                            && Number(element.variante_id) === Number(producto.variante_id)
+                    );
                     const cantidadEnCarro = productoExistente?.cantidad || 0;
                     const stockDisponible = stock - cantidadEnCarro;
 
@@ -169,8 +172,10 @@ btnAgregarCarrito.forEach((btn) => {
 
                 const prod = {
                     id: producto.id,
+                    variante_id:producto.variante_id,
                     nombre: producto.nombre,
                     talle: producto.talle || null,
+                    color:producto.color || null,
                     cantidad,
                     precio: redondearMoneda(precio),
                     total: redondearMoneda(precio * cantidad),
@@ -201,7 +206,10 @@ btnAgregarCarrito.forEach((btn) => {
             if (result.isConfirmed) {
                 const { mensaje, ...prod } = result.value;
 
-                const productoExistente = carro.find((element) => element.id === prod.id);
+                const productoExistente = carro.find(
+                    (element) => element.id === prod.id
+                        && Number(element.variante_id) === Number(prod.variante_id)
+                );
 
                 if (productoExistente) {
                     productoExistente.cantidad = productoExistente.cantidad + prod.cantidad;
@@ -235,6 +243,7 @@ const crearCarritoForm = (producto) => {
         <input type="hidden" name="csrf_token" value="${csrf_token}">
         <fieldset>
             <legend>${producto.nombre}</legend>
+            ${producto.color ? `<p>Color: ${producto.color}</p>` : ''}
             ${producto.talle ? `<p>Talle: ${producto.talle}</p>` : ''}
             <legend>Stock: ${producto.stock}</legend>
             <label for="cantidad">

@@ -24,7 +24,18 @@ export class CartService{
     }
 
     async validarProductoParaAgregar(producto, cantidadEnCarrito = 0){
-        const productoBase = await this.#productModel.findByID(producto.id);
+        const productId = Number(producto.id);
+        const variantId = Number(producto.variante_id);
+
+        if (!Number.isInteger(productId) || productId < 1) {
+            throw new AppError('Bad Request', 'Producto invalido', 400);
+        }
+
+        if (!Number.isInteger(variantId) || variantId < 1) {
+            throw new AppError('Bad Request', 'Debe seleccionar una variante del producto', 400);
+        }
+
+        const productoBase = await this.#productModel.findVariantByID(productId, variantId);
         const cantidadSolicitada = this.validarCantidad(producto.cantidad);
         const cantidadActual = this.validarCantidad(cantidadEnCarrito);
         const stock = this.validarCantidad(productoBase.stock);
@@ -53,8 +64,11 @@ export class CartService{
         return {
             producto: {
                 ...producto,
+                id:productoBase.id,
+                variante_id:productoBase.variante_id,
                 nombre: productoBase.nombre,
                 talle: productoBase.talle,
+                color:productoBase.color,
                 precio,
                 cantidad: cantidadPermitida,
                 total,

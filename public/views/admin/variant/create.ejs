@@ -1,11 +1,7 @@
 <%
 const datosFormulario = typeof form_data !== 'undefined' && form_data ? form_data : {};
-const tallesActivos = new Set(
-    (Array.isArray(variantes) ? variantes : []).map((variante) => String(variante.talle_id))
-);
 const talleSeleccionado = String(datosFormulario.talle || '');
 const imagenProducto = producto.imagen_archivo || '/assets/img/product-placeholder.svg';
-const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String(talle.id)));
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -54,7 +50,7 @@ const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String
                                 <div class="card-body">
                                     <h2 id="variant-product-title" class="fs-5"><%= producto.nombre %></h2>
                                     <p class="text-body-secondary mb-0">
-                                        La variante utilizará las imágenes y la información general de este producto.
+                                        Cada combinación de talle y color mantiene su propio stock e imágenes.
                                     </p>
                                 </div>
                             </aside>
@@ -65,6 +61,7 @@ const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String
                                 id="form-create-variant"
                                 method="post"
                                 action="<%= url('/admin/productos/' + producto.id + '/variantes') %>"
+                                enctype="multipart/form-data"
                             >
                                 <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                                 <input type="hidden" name="producto_id" value="<%= producto.id %>">
@@ -75,39 +72,41 @@ const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String
                                     </div>
 
                                     <div class="card-body">
-                                        <% if (!quedanTallesDisponibles) { %>
-                                            <div class="alert alert-info" role="status">
-                                                El producto ya posee una variante activa para cada talle disponible.
-                                            </div>
-                                        <% } %>
-
                                         <div class="row g-3">
-                                            <div class="col-12">
+                                            <div class="col-12 col-md-6">
                                                 <label for="variant-size" class="form-label">Talle</label>
                                                 <select
                                                     name="talle"
                                                     class="form-select"
                                                     id="variant-size"
                                                     required
-                                                    <%= quedanTallesDisponibles ? '' : 'disabled' %>
                                                 >
                                                     <option value="" disabled <%= talleSeleccionado ? '' : 'selected' %>>
                                                         Seleccionar talle
                                                     </option>
                                                     <% talles.forEach((talle) => { %>
-                                                        <%
-                                                        const talleActivo = tallesActivos.has(String(talle.id));
-                                                        const estaSeleccionado = talleSeleccionado === String(talle.id);
-                                                        %>
+                                                        <% const estaSeleccionado = talleSeleccionado === String(talle.id); %>
                                                         <option
                                                             value="<%= talle.id %>"
                                                             <%= estaSeleccionado ? 'selected' : '' %>
-                                                            <%= talleActivo ? 'disabled' : '' %>
                                                         >
-                                                            <%= talle.tipo %><%= talleActivo ? ' — ya agregado' : '' %>
+                                                            <%= talle.tipo %>
                                                         </option>
                                                     <% }) %>
                                                 </select>
+                                            </div>
+
+                                            <div class="col-12 col-md-6">
+                                                <label for="variant-color" class="form-label">Color</label>
+                                                <input
+                                                    type="text"
+                                                    name="color"
+                                                    class="form-control"
+                                                    id="variant-color"
+                                                    maxlength="100"
+                                                    value="<%= datosFormulario.color || '' %>"
+                                                    required
+                                                >
                                             </div>
 
                                             <div class="col-12 col-sm-6">
@@ -146,6 +145,19 @@ const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String
                                                     >
                                                 </div>
                                             </div>
+
+                                            <div class="col-12">
+                                                <label for="variant-images" class="form-label">Imagenes de la variante</label>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    id="variant-images"
+                                                    name="imagenes"
+                                                    accept="image/jpeg,image/png,image/gif,image/svg+xml,.jpg,.jpeg,.png,.gif,.svg"
+                                                    multiple
+                                                >
+                                                <div class="form-text">Hasta 8 imagenes de 5 MB cada una.</div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -153,7 +165,7 @@ const quedanTallesDisponibles = talles.some((talle) => !tallesActivos.has(String
                                         <a class="btn btn-outline-secondary" href="<%= url('/admin/productos/' + producto.id) %>">
                                             Cancelar
                                         </a>
-                                        <button type="submit" class="btn btn-primary" <%= quedanTallesDisponibles ? '' : 'disabled' %>>
+                                        <button type="submit" class="btn btn-primary">
                                             <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
                                             Crear variante
                                         </button>

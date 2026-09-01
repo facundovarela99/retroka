@@ -7,7 +7,12 @@ import {
     validarLogin,
     validarNuevoUsuario
 } from '../app/Services/Auth.service.js';
-import { esPeticionAjax, validarCsrfToken } from '../app/Helpers.js';
+import {
+    esPeticionAjax,
+    getSessionMessage,
+    sessionMessage,
+    validarCsrfToken
+} from '../app/Helpers.js';
 
 const password = 'Clave-Segura-26';
 
@@ -148,4 +153,16 @@ test('AJAX se detecta mediante header, Accept o JSON', () => {
     assert.equal(esPeticionAjax(request({ accept: 'application/json' })), true);
     assert.equal(esPeticionAjax(request({ 'content-type': 'application/json' })), true);
     assert.equal(esPeticionAjax(request({ accept: 'text/html' })), false);
+});
+
+test('los mensajes de sesion conservan el tipo y se consumen una sola vez', () => {
+    const req = { session:{} };
+
+    sessionMessage(req, 'Categoría creada exitosamente', 'success');
+
+    assert.deepEqual(getSessionMessage(req), {
+        message:'Categoría creada exitosamente',
+        type:'success'
+    });
+    assert.equal(getSessionMessage(req), null);
 });

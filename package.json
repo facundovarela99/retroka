@@ -2,10 +2,10 @@
   "name": "retroka",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./app/app.js",
   "scripts": {
     "dev": "node --watch ./app/app.js",
-    "start": "node --watch ./app/app.js",
+    "start": "node ./app/app.js",
     "test": "node --test"
   },
   "keywords": [],

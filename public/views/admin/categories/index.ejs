@@ -1,0 +1,211 @@
+<%
+const listadoCategorias = Array.isArray(categorias) ? categorias : [];
+const mensajeCategoria = typeof category_message !== 'undefined' ? category_message : null;
+const tokenCsrf = typeof csrf_token === 'string' ? csrf_token : '';
+const usuarioAdmin = typeof user !== 'undefined' && user ? user : { email: '' };
+%>
+<!DOCTYPE html>
+<html lang="es">
+<%- include('../../../partials/admin/admin-meta') %>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <%- include('../../../partials/admin/admin-navbar', { user: usuarioAdmin, csrf_token: tokenCsrf }) %>
+        <%- include('../../../partials/admin/admin-sidebar', { activePage: 'categories' }) %>
+
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center gy-2">
+                        <div class="col-sm-6">
+                            <h1 class="mb-0 fs-3">Categorias</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-end mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="<%= url('/admin/dashboard') %>">Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Categorias</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-content">
+                <div class="container-fluid pb-4 container-fluid-main">
+                    <% if (mensajeCategoria?.message) { %>
+                        <div
+                            class="alert <%= mensajeCategoria.type === 'success' ? 'alert-success' : 'alert-danger' %> alert-dismissible"
+                            role="alert"
+                        >
+                            <div class="pe-4">
+                                <%= mensajeCategoria.message %>
+                            </div>
+
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    <% } %>
+
+                    <div id="categories-feedback" class="alert d-none" role="alert" aria-live="polite"></div>
+
+                    <section
+                        id="categories-list"
+                        class="card"
+                        aria-labelledby="categories-list-title"
+                    >
+                        <div class="card-header d-flex align-items-center gap-3">
+                            <h2 id="categories-list-title" class="card-title mb-0">
+                                Categorias registradas
+                                <span class="badge text-bg-secondary ms-2"><%= listadoCategorias.length %></span>
+                            </h2>
+
+                            <a class="btn btn-primary btn-sm ms-auto" href="<%= url('/admin/categorias/crear') %>">
+                                <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                Nueva categoria
+                            </a>
+                        </div>
+
+                        <% if (listadoCategorias.length > 0) { %>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col" class="text-nowrap">ID</th>
+                                                <th scope="col">Nombre</th>
+                                                <th scope="col" class="text-end">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% listadoCategorias.forEach((categoria) => { %>
+                                                <tr id="tr-categoria-id-<%= categoria.id %>" data-category-row>
+                                                    <td class="text-body-secondary"><%= categoria.id %></td>
+                                                    <td class="fw-semibold"><%= categoria.nombre %></td>
+                                                    <td class="text-end">
+                                                        <div class="d-inline-flex align-items-center gap-1">
+                                                            <a
+                                                                class="btn btn-sm btn-outline-primary"
+                                                                href="<%= url('/admin/categoria/' + categoria.id) %>"
+                                                                title="Editar categoria"
+                                                                aria-label="Editar categoria <%= categoria.nombre %>"
+                                                            >
+                                                                <i class="fas fa-edit" aria-hidden="true"></i>
+                                                            </a>
+
+                                                            <form class="category-delete-form" method="post" action="<%= url('/admin/categorias/eliminar') %>" data-category-id="<%= categoria.id %>" data-category-name="<%= categoria.nombre %>">
+                                                                <input type="hidden" name="csrf_token" value="<%= tokenCsrf %>">
+                                                                <input type="hidden" name="id" value="<%= categoria.id %>">
+
+                                                                <button
+                                                                    class="btn btn-sm btn-outline-danger"
+                                                                    type="submit"
+                                                                    title="Eliminar categoria"
+                                                                    aria-label="Eliminar categoria <%= categoria.nombre %>"
+                                                                >
+                                                                    <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        <% } else { %>
+                            <div class="card-body py-5 text-center">
+                                <i class="bi bi-tags fs-1 text-body-secondary" aria-hidden="true"></i>
+                                <p class="text-body-secondary mt-3 mb-3">No hay categorias registradas.</p>
+                                <a class="btn btn-primary" href="<%= url('/admin/categorias/nueva') %>">
+                                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                                    Crear categoria
+                                </a>
+                            </div>
+                        <% } %>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <%- include('../../../partials/admin/admin-footer') %>
+    </div>
+
+    <%- include('../../../partials/admin/admin-scripts') %>
+    <script>
+        (() => {
+            const categoriesList = document.getElementById('categories-list');
+            const feedback = document.getElementById('categories-feedback');
+
+            if (!categoriesList || !feedback) return;
+
+            categoriesList.addEventListener('submit', async (event) => {
+                const deleteForm = event.target.closest('.category-delete-form');
+                const id = deleteForm ? deleteForm.dataset.categoryId : null;
+
+                if (!deleteForm) return;
+
+                event.preventDefault();
+
+                const categoryName = deleteForm.dataset.categoryName;
+                const confirmed = window.confirm(
+                    `Eliminar la categoria "${categoryName}"? Esta accion no se puede deshacer.`
+                );
+
+                if (!confirmed) return;
+
+                const deleteButton = deleteForm.querySelector('[type="submit"]');
+                deleteButton.disabled = true;
+                feedback.className = 'alert d-none';
+
+                try {
+                    const response = await fetch(deleteForm.action, {
+                        method:'POST',
+                        headers:{
+                            Accept:'application/json',
+                            'X-Requested-With':'XMLHttpRequest'
+                        },
+                        body:new URLSearchParams(new FormData(deleteForm))
+                    });
+                    const result = await response.json();
+                    console.log('Resultado de eliminar la categoría: ', result);
+                    if (!response.ok) throw new Error(result.message || 'No se pudo eliminar la categoria');
+                    if (result.data) {
+                        const tr = document.getElementById(`tr-categoria-id-${id}`);
+                        if (tr) {
+                            tr.remove();
+                        }
+    
+                        document.querySelector('.container-fluid-main').insertAdjacentHTML('afterbegin', `
+                            <div class="alert alert-success alert-dismissible" role="alert">
+                                <div class="pe-4">
+                                    ${result.message || 'Categoria eliminada correctamente.'}
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                            </div>
+                        `);
+                    }
+
+
+                } catch (error) {
+                    document.querySelector('.container-fluid-main').insertAdjacentHTML('afterbegin', `
+                        <div class="alert alert-danger alert-dismissible" role="alert">
+                            <div class="pe-4">
+                                ${error.message || 'Error al eliminar la categoria.'}
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    `);
+                } finally{
+                    setTimeout(() => {
+                        const alert = document.querySelector('.container-fluid-main .alert');
+                        if (alert) {
+                            alert.remove();
+                        }
+                    }, 4200);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

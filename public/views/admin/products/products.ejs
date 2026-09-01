@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
-<%- include('../../partials/admin/admin-meta') %>
+<%- include('../../../partials/admin/admin-meta') %>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
-        <%- include('../../partials/admin/admin-navbar') %>
-        <%- include('../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
+        <%- include('../../../partials/admin/admin-navbar') %>
+        <%- include('../../../partials/admin/admin-sidebar', { activePage: 'products' }) %>
 
         <main class="app-main">
             <div class="app-content-header">
@@ -19,7 +19,7 @@
 
             <div class="app-content">
                 <div class="container-fluid">
-                    <%- include('../../partials/admin/product-message') %>
+                    <%- include('../../../partials/admin/product-message') %>
 
                     <div class="row g-3 mb-4">
                         
@@ -37,6 +37,7 @@
                                             <table class="table table-hover align-middle mb-0">
                                                 <thead>
                                                     <tr>
+                                                        <th scope="col">ID</th>
                                                         <th scope="col">Producto</th>
                                                         <th scope="col">Categoria</th>
                                                         <th scope="col">Stock</th>
@@ -46,6 +47,9 @@
                                                 <tbody>
                                                     <% productos.forEach((producto) => { %>
                                                         <tr>
+                                                            <td>
+                                                                <span><%= producto.id %></span>
+                                                            </td>
                                                             <td>
                                                                 <span><%= producto.nombre %></span>
                                                             </td>
@@ -101,13 +105,82 @@
                             </section>
                         </div>
                     </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-xl-8">
+                            <section class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">Productos eliminados</h2>
+                                </div>
+                                <div class="card-body p-0">
+                                    <% if (productos_eliminados.length > 0) { %>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">ID</th>
+                                                        <th scope="col">Producto</th>
+                                                        <th scope="col">Categoria</th>
+                                                        <th scope="col">Stock</th>
+                                                        <th scope="col" class="text-end">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% productos_eliminados.forEach((producto) => { %>
+                                                        <tr>
+                                                            <td>
+                                                                <span><%= producto.id %></span>
+                                                            </td>
+                                                            <td>
+                                                                <span><%= producto.nombre %></span>
+                                                            </td>
+                                                            <td><span><%= producto.categoria_producto || 'Sin categoria' %></span></td>
+                                                            <td class="text-end">
+                                                                <span class="badge <%= Number(producto.stock) === 0 ? 'text-bg-danger' : 'text-bg-warning' %>">
+                                                                    <%= producto.stock %>
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                 <a
+                                                                    class="btn btn-sm btn-outline-primary"
+                                                                    href="<%= url('/admin/productos/' + producto.id) %>"
+                                                                    title="Editar"
+                                                                 >
+                                                                    <i class="fas fa-edit me-1" aria-hidden="true"></i>
+                                                                 </a>
+                                                                 <form class="form-publicar-producto d-inline" method="post" action="<%= url('/admin/productos/publicar') %>" title="Publicar">
+                                                                    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                                                                    <input type="hidden" name="id" value="<%= producto.id %>">
+                                                                    <button class="btn btn-sm btn-outline-success" type="submit">
+                                                                        <i class="fas fa-check me-1" aria-hidden="true"></i>
+                                                                    </button>
+                                                                 </form>
+                                                            </td>
+                                                        </tr>
+                                                    <% }) %>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    <% } else { %>
+                                        <p class="text-body-secondary p-3 mb-0">No hay productos eliminados.</p>
+                                    <% } %>
+                                </div>
+                            </section>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </main>
 
-        <%- include('../../partials/admin/admin-footer') %>
+        <%- include('../../../partials/admin/admin-footer') %>
     </div>
 
-    <%- include('../../partials/admin/admin-scripts') %>
+    <%- include('../../../partials/admin/admin-scripts') %>
 </body>
 </html>
+<script>
+    window.BASEURL = "<%= url('/') %>";
+    window.CSRF_TOKEN = "<%= csrf_token %>";
+</script>
+<script src="../../../assets/js/publicar.js" type="module"></script>

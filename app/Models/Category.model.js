@@ -9,7 +9,6 @@ export class CategoryModel {
             `SELECT * FROM ${this.#table};`
         );
 
-        if (rows.length === 0) throw new AppError('Not Found', 'No existen categorias', 404);
         return rows;
     }
 
@@ -93,8 +92,17 @@ export class CategoryModel {
             if (connection) await connection.rollback();
             throw new AppError('Internal Server error', 'Error al eliminar la categoría: '+error.message, 500);
         } finally {
-            if (connection) await connection.release();
+            if (connection) connection.release();
         }
+    }
+
+    async getRelatedProducts(id){
+
+        const [rows] = await pool.execute(
+            `SELECT * FROM productos WHERE productos.categoria = ?;`,[id]
+        );
+
+        return rows;
     }
 
 }

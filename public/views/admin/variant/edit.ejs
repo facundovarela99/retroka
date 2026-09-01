@@ -3,13 +3,19 @@ const datosFormulario = typeof form_data !== 'undefined' && form_data ? form_dat
 const valorCampo = (campo, actual) => Object.prototype.hasOwnProperty.call(datosFormulario, campo)
     ? datosFormulario[campo] ?? ''
     : actual;
-const tallesDeOtrasVariantes = new Set(
-    (Array.isArray(variantes) ? variantes : [])
-        .filter((item) => Number(item.variante_id) !== Number(variante.variante_id))
-        .map((item) => String(item.talle_id))
+const imagenesVariante = typeof imagenes !== 'undefined' && Array.isArray(imagenes) ? imagenes : [];
+const imagenesMarcadas = new Set(
+    (Array.isArray(datosFormulario.eliminar_imagenes)
+        ? datosFormulario.eliminar_imagenes
+        : datosFormulario.eliminar_imagenes
+            ? [datosFormulario.eliminar_imagenes]
+            : []
+    ).map(String)
 );
 const talleSeleccionado = String(valorCampo('talle', variante.talle_id));
-const imagenProducto = producto.imagen_archivo || '/assets/img/product-placeholder.svg';
+const imagenPrincipal = imagenesVariante[0]?.url
+    || producto.imagen_archivo
+    || '/assets/img/product-placeholder.svg';
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -51,14 +57,14 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
                                 <div class="ratio ratio-4x3 bg-body-secondary rounded-top overflow-hidden">
                                     <img
                                         class="w-100 h-100 object-fit-contain"
-                                        src="<%= imagenProducto %>"
-                                        alt="<%= producto.imagen_archivo ? producto.nombre : 'Producto sin imagen' %>"
+                                        src="<%= imagenPrincipal %>"
+                                        alt="Variante <%= valorCampo('color', variante.color) || variante.variante_id %> de <%= producto.nombre %>"
                                     >
                                 </div>
                                 <div class="card-body">
                                     <h2 id="variant-product-title" class="fs-5"><%= producto.nombre %></h2>
                                     <p class="text-body-secondary mb-0">
-                                        Variante #<%= variante.variante_id %>. Las imágenes pertenecen al producto y no se modifican aquí.
+                                        Variante #<%= variante.variante_id %>. Las imágenes cargadas aquí pertenecen únicamente a esta variante.
                                     </p>
                                 </div>
                             </aside>
@@ -69,6 +75,7 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
                                 id="form-edit-variant"
                                 method="post"
                                 action="<%= url('/admin/productos/' + producto.id + '/variantes/' + variante.variante_id) %>"
+                                enctype="multipart/form-data"
                             >
                                 <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                                 <input type="hidden" name="producto_id" value="<%= producto.id %>">
@@ -81,24 +88,33 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
 
                                     <div class="card-body">
                                         <div class="row g-3">
-                                            <div class="col-12">
+                                            <div class="col-12 col-md-6">
                                                 <label for="variant-size" class="form-label">Talle</label>
                                                 <select name="talle" class="form-select" id="variant-size" required>
                                                     <option value="" disabled>Seleccionar talle</option>
                                                     <% talles.forEach((talle) => { %>
-                                                        <%
-                                                        const usadoPorOtraVariante = tallesDeOtrasVariantes.has(String(talle.id));
-                                                        const estaSeleccionado = talleSeleccionado === String(talle.id);
-                                                        %>
+                                                        <% const estaSeleccionado = talleSeleccionado === String(talle.id); %>
                                                         <option
                                                             value="<%= talle.id %>"
                                                             <%= estaSeleccionado ? 'selected' : '' %>
-                                                            <%= usadoPorOtraVariante ? 'disabled' : '' %>
                                                         >
-                                                            <%= talle.tipo %><%= usadoPorOtraVariante ? ' — ya agregado' : '' %>
+                                                            <%= talle.tipo %>
                                                         </option>
                                                     <% }) %>
                                                 </select>
+                                            </div>
+
+                                            <div class="col-12 col-md-6">
+                                                <label for="variant-color" class="form-label">Color</label>
+                                                <input
+                                                    type="text"
+                                                    name="color"
+                                                    class="form-control"
+                                                    id="variant-color"
+                                                    maxlength="100"
+                                                    value="<%= valorCampo('color', variante.color) %>"
+                                                    required
+                                                >
                                             </div>
 
                                             <div class="col-12 col-sm-6">
@@ -136,6 +152,54 @@ const imagenProducto = producto.imagen_archivo || '/assets/img/product-placehold
                                                         required
                                                     >
                                                 </div>
+                                            </div>
+
+                                            <% if (imagenesVariante.length > 0) { %>
+                                                <div class="col-12">
+                                                    <fieldset>
+                                                        <legend class="fs-6 fw-semibold mb-3">Imagenes actuales</legend>
+                                                        <div class="row g-3">
+                                                            <% imagenesVariante.forEach((imagen) => { %>
+                                                                <div class="col-6 col-md-4">
+                                                                    <label class="border rounded d-block overflow-hidden h-100">
+                                                                        <span class="ratio ratio-1x1 bg-body-secondary d-block">
+                                                                            <img
+                                                                                class="w-100 h-100 object-fit-cover"
+                                                                                src="<%= imagen.url %>"
+                                                                                alt="<%= imagen.nombre_original || variante.color || producto.nombre %>"
+                                                                            >
+                                                                        </span>
+                                                                        <span class="form-check m-2">
+                                                                            <input
+                                                                                class="form-check-input"
+                                                                                type="checkbox"
+                                                                                name="eliminar_imagenes"
+                                                                                value="<%= imagen.id %>"
+                                                                                <%= imagenesMarcadas.has(String(imagen.id)) ? 'checked' : '' %>
+                                                                            >
+                                                                            <span class="form-check-label">Eliminar</span>
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            <% }) %>
+                                                        </div>
+                                                    </fieldset>
+                                                </div>
+                                            <% } %>
+
+                                            <div class="col-12">
+                                                <label for="variant-images" class="form-label">
+                                                    <%= imagenesVariante.length > 0 ? 'Agregar imagenes' : 'Imagenes de la variante' %>
+                                                </label>
+                                                <input
+                                                    type="file"
+                                                    class="form-control"
+                                                    id="variant-images"
+                                                    name="imagenes"
+                                                    accept="image/jpeg,image/png,image/gif,image/svg+xml,.jpg,.jpeg,.png,.gif,.svg"
+                                                    multiple
+                                                >
+                                                <div class="form-text">Hasta 8 imagenes en total, de 5 MB cada una.</div>
                                             </div>
                                         </div>
                                     </div>

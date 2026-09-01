@@ -124,3 +124,23 @@ export function esPeticionAjax(req) {
         || accept.toLowerCase().includes('application/json')
         || contentType.toLowerCase().includes('application/json');
 }
+
+export function sessionMessage(req, message, type){
+    req.session.message = message;
+
+    if(type){
+        req.session.message_type = type;
+    }
+}
+
+export function getSessionMessage(req){
+    const message = req.session?.message || null;
+    const type = req.session?.message_type || null;
+
+    if (req.session.message || req.session?.message_type) {
+        delete req.session.message;
+        delete req.session.message_type;
+    }
+
+    return message ? { message, type } : null;
+}

@@ -86,7 +86,7 @@ const multerErrorMessage = (error) => {
             return 'Cada imagen debe pesar como maximo 5 MB';
         case 'LIMIT_FILE_COUNT':
         case 'LIMIT_UNEXPECTED_FILE':
-            return `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes por producto`;
+            return `Se permiten hasta ${MAX_PRODUCT_IMAGES} imagenes por carga`;
         case 'LIMIT_FIELD_COUNT':
         case 'LIMIT_PART_COUNT':
             return 'El formulario contiene demasiados campos';
@@ -133,10 +133,24 @@ export const handleProductUploadError = async (error, req, res, next) => {
         ? 'No se pudieron procesar las imagenes. Intenta nuevamente.'
         : error.message;
     const isProductUpdate = req.path === '/admin/productos/actualizar';
+    const variantProductId = Number(req.params?.productId);
+    const variantId = Number(req.params?.variantId);
+    const isVariantRequest = Number.isInteger(variantProductId)
+        && variantProductId > 0
+        && req.path.includes('/variantes');
+    const isVariantUpdate = isVariantRequest && Number.isInteger(variantId) && variantId > 0;
     const productId = Number(req.body?.id);
     const updateRedirect = Number.isInteger(productId) && productId > 0
         ? url(`/admin/producto/edit/${productId}`)
         : url('/admin/productos');
+    const variantRedirect = isVariantUpdate
+        ? url(`/admin/productos/${variantProductId}/variantes/${variantId}/editar`)
+        : url(`/admin/productos/${variantProductId}/variantes/nueva`);
+    const redirectTo = isVariantRequest
+        ? variantRedirect
+        : isProductUpdate
+            ? updateRedirect
+            : url('/admin/productos/nuevo');
 
     if (esPeticionAjax(req)) {
         return res.status(status).json({
@@ -144,7 +158,7 @@ export const handleProductUploadError = async (error, req, res, next) => {
             error: internalError ? 'Internal Server Error' : error?.error || 'Bad Request',
             message,
             status,
-            redirectTo: isProductUpdate ? updateRedirect : url('/admin/productos/nuevo')
+            redirectTo
         });
     }
 
@@ -158,17 +172,21 @@ export const handleProductUploadError = async (error, req, res, next) => {
     };
     const formData = {
         id: req.body?.id,
+        producto_id: req.body?.producto_id,
         variante_id: req.body?.variante_id,
         nombre: req.body?.nombre,
         descripcion: req.body?.descripcion,
         talle: req.body?.talle,
         stock: req.body?.stock,
+        color: req.body?.color,
         precio: req.body?.precio,
         categoria: req.body?.categoria,
         eliminar_imagenes: req.body?.eliminar_imagenes
     };
 
-    if (isProductUpdate) {
+    if (isVariantRequest) {
+        req.session.variant_form_data = formData;
+    } else if (isProductUpdate) {
         req.session.product_update_form_data = formData;
     } else {
         req.session.product_form_data = formData;
@@ -180,5 +198,5 @@ export const handleProductUploadError = async (error, req, res, next) => {
         return next(sessionError);
     }
 
-    return res.redirect(303, isProductUpdate ? updateRedirect : url('/admin/productos/nuevo'));
+    return res.redirect(303, redirectTo);
 };
