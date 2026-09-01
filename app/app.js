@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const port = process.env.PORT;
+const PORT = process.env.PORT;
 const app = express();
 
 if (process.env.NODE_ENV === 'production') {
@@ -119,6 +119,6 @@ app.use((error, req, res, next) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Escuchando servidor en http://localhost:${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Escuchando servidor en http://localhost:${PORT}`);
 });

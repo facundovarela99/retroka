@@ -11,6 +11,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines":{
+    "node": "22.18.0"
+  },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
