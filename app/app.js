@@ -43,7 +43,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
 app.use(AppSession());
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
-app.use('/retroka', router);
+app.use('/', router);
 
 app.use((req, res, next) => {
     const error = new Error('La pagina solicitada no existe');
