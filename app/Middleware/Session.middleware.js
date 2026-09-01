@@ -74,11 +74,11 @@ export const requireAuth = (req, res, next) => {
             error: 'Unauthorized',
             message,
             status: 401,
-            redirectTo: '/retroka/login'
+            redirectTo: '/login'
         });
     }
 
-    return redirectWithMessage(req, res, '/retroka/login', message);
+    return redirectWithMessage(req, res, '/login', message);
 };
 
 export const isAdmin = (req, res, next) => {
@@ -92,7 +92,7 @@ export const isAdmin = (req, res, next) => {
     const message = authenticated
         ? 'No tenes permisos para realizar esta accion'
         : 'Debes iniciar sesion para acceder a esta ruta';
-    const redirectTo = authenticated ? '/retroka/productos' : '/retroka/login';
+    const redirectTo = authenticated ? '/productos' : '/login';
 
     if (esPeticionAjax(req)) {
         return res.status(status).json({

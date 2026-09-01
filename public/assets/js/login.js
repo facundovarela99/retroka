@@ -68,7 +68,7 @@ if (form) {
                 sessionStorage.setItem('mensaje-carrito', data.carrito.message);
             }
 
-            window.location.assign(data.redirectTo || '/retroka/productos');
+            window.location.assign(data.redirectTo || '/productos');
         } catch {
             enviarFormularioNativo();
         } finally {

@@ -46,12 +46,12 @@ export const authRateLimit = (scope) => (req, res, next) => {
                 error: 'Too Many Requests',
                 message,
                 status: 429,
-                redirectTo: '/retroka/login'
+                redirectTo: '/login'
             });
         }
 
         req.session.auth_message = { type: 'error', message };
-        return res.redirect(303, '/retroka/login');
+        return res.redirect(303, '/login');
     }
 
     attempt.count += 1;
@@ -74,7 +74,7 @@ export const requireCsrf = (req, res, next) => {
     }
 
     const message = 'CSRF token invalido';
-    const redirectTo = req.session?.user ? '/retroka/productos' : '/retroka/login';
+    const redirectTo = req.session?.user ? '/productos' : '/login';
 
     res.set('Cache-Control', 'no-store');
 

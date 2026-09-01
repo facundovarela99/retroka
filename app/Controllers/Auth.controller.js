@@ -17,8 +17,8 @@ import {
     validarCsrfToken
 } from '../Helpers.js';
 
-const LOGIN_PATH = '/retroka/login';
-const DEFAULT_AUTH_PATH = '/retroka/productos';
+const LOGIN_PATH = '/login';
+const DEFAULT_AUTH_PATH = '/productos';
 
 const cookieOptions = {
     httpOnly: true,
@@ -149,7 +149,7 @@ export class AuthController {
                 flashType: 'success',
             });
         } catch (error) {
-            return responderError(req, res, error, '/retroka/registro');
+            return responderError(req, res, error, '/registro');
         }
     }
 
@@ -205,7 +205,7 @@ export class AuthController {
                 redirectTo: DEFAULT_AUTH_PATH
             });
         } catch (error) {
-            return responderError(req, res, error, '/retroka/login');
+            return responderError(req, res, error, '/login');
         }
     }
 
@@ -236,7 +236,7 @@ export class AuthController {
                 redirectTo: DEFAULT_AUTH_PATH
             });
         } catch (error) {
-            return responderError(req, res, error, '/retroka/productos');
+            return responderError(req, res, error, '/productos');
         }
     }
 
